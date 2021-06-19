@@ -1,0 +1,7 @@
+version: '3'
+services:
+  gosh:
+    image: practicalscheme/gauche
+    volumes:
+      - .:/code
+    working_dir: /code
