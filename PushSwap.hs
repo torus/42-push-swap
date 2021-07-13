@@ -1,0 +1,194 @@
+import Data.List (sortOn)
+import Control.Monad.ST
+import Data.Array.ST
+
+newtype StackPair = StackPair ([Int], [Int]) deriving (Show, Eq)
+
+pushStack :: [Int] -> Int -> [Int]
+pushStack s a = a : s
+
+makeStackPair :: [Int] -> [Int] -> StackPair
+makeStackPair l r = StackPair (l, r)
+
+stackA (StackPair a) = fst a
+stackB (StackPair a) = snd a
+
+stackSwap :: [a] -> [a]
+stackSwap [] = []
+stackSwap [a] = [a]
+stackSwap (a : b : as) = b : a : as
+
+sa :: StackPair -> StackPair
+sa p = makeStackPair (stackSwap (stackA p)) (stackB p)
+
+sb :: StackPair -> StackPair
+sb p = makeStackPair (stackA p) (stackSwap (stackB p))
+
+ss :: StackPair -> StackPair
+ss p = makeStackPair (stackSwap (stackA p)) (stackSwap (stackB p))
+
+pa :: StackPair -> StackPair
+pa (StackPair (as, [])) = makeStackPair as []
+pa (StackPair (as, b : bs)) = makeStackPair (b : as) bs
+
+pb :: StackPair -> StackPair
+pb (StackPair ([], bs)) = makeStackPair [] bs
+pb (StackPair (a : as, bs)) = makeStackPair as (a : bs)
+
+stackRotate :: [a] -> [a]
+stackRotate [] = []
+stackRotate (s : ss) = ss ++ [s]
+
+ra :: StackPair -> StackPair
+ra p = makeStackPair (stackRotate (stackA p)) (stackB p)
+
+rb :: StackPair -> StackPair
+rb p = makeStackPair (stackA p) (stackRotate (stackB p))
+
+rr :: StackPair -> StackPair
+rr p = makeStackPair (stackRotate (stackA p)) (stackRotate (stackB p))
+
+stackReverseRotate :: [a] -> [a]
+stackReverseRotate [] = []
+stackReverseRotate p = last p : init p
+
+rra :: StackPair -> StackPair
+rra p = makeStackPair (stackReverseRotate (stackA p)) (stackB p)
+
+rrb :: StackPair -> StackPair
+rrb p = makeStackPair (stackA p) (stackReverseRotate (stackB p))
+
+rrr :: StackPair -> StackPair
+rrr p = makeStackPair (stackReverseRotate (stackA p))
+                      (stackReverseRotate (stackB p))
+
+stackHash :: [Int] -> Int
+stackHash [] = 0
+stackHash (a : as) = (a + stackHash as * 256) `mod` 100000
+
+hash :: StackPair -> Int
+hash (StackPair (a, b)) = stackHash a + stackHash b
+
+{-
+>>> stackHash [10, 20, 30]
+71210
+>>> let theStackPair = ([1 .. 5], [6 .. 10]) in sa theStackPair
+([2,1,3,4,5],[6,7,8,9,10])
+>>> let theStackPair = ([1 .. 5], [6 .. 10]) in sb theStackPair
+([1,2,3,4,5],[7,6,8,9,10])
+>>> let theStackPair = ([1 .. 5], [6 .. 10]) in ss theStackPair
+([2,1,3,4,5],[7,6,8,9,10])
+>>> let theStackPair = ([1 .. 5], [6 .. 10]) in pa theStackPair
+>>> let theStackPair = ([1 .. 5], [6 .. 10]) in pb theStackPair
+([6,1,2,3,4,5],[7,8,9,10])
+([2,3,4,5],[1,6,7,8,9,10])
+>>> let theStackPair = ([1 .. 5], [6 .. 10]) in ra theStackPair
+>>> let theStackPair = ([1 .. 5], [6 .. 10]) in rb theStackPair
+>>> let theStackPair = ([1 .. 5], [6 .. 10]) in rr theStackPair
+([2,3,4,5,1],[6,7,8,9,10])
+([1,2,3,4,5],[7,8,9,10,6])
+([2,3,4,5,1],[7,8,9,10,6])
+>>> let theStackPair = ([1 .. 5], [6 .. 10]) in rra theStackPair
+>>> let theStackPair = ([1 .. 5], [6 .. 10]) in rrb theStackPair
+>>> let theStackPair = ([1 .. 5], [6 .. 10]) in rrr theStackPair
+([5,1,2,3,4],[6,7,8,9,10])
+([1,2,3,4,5],[10,6,7,8,9])
+([5,1,2,3,4],[10,6,7,8,9])
+ -}
+
+scoreA :: [Int] -> Int
+scoreA s = iter s 0
+    where
+        iter [] i = 0
+        iter (a : as) i = ((a - i) ^ 2) + iter as (i + 1)
+
+scoreB :: [Int] -> Int
+scoreB s = iter s $ length s - 1
+    where
+        iter [] i = 0
+        iter (a : as) i = ((a - i) ^ 2) + iter as (i - 1)
+
+score :: StackPair -> Int
+score (StackPair (a, b)) = scoreA a + scoreB b + length b
+
+{-
+>>> scoreA [0,1,2,3,4]
+>>> scoreA [1,2,3,4,0]
+>>> scoreA [0,1,3,2,4]
+>>> scoreA [1,0,3,2,4]
+0
+20
+2
+4
+>>> scoreB [0,1,2,3,4]
+>>> scoreB [4,3,2,1,0]
+40
+20
+38
+36
+0
+ -}
+
+ops :: [([Char], StackPair -> StackPair)]
+ops = [ ("sa", sa), ("sb", sb), ("ss", ss)
+      , ("pa", pa), ("pb", pb)
+      , ("ra", ra), ("rb", rb), ("rr", rr)
+      , ("rra", rra), ("rrb", rrb), ("rrr", rrr)]
+
+newtype Move = Move ([Char], Int, StackPair) deriving (Show)
+moves :: StackPair -> [Move]
+moves p = sortOn (\(Move (_,x,_)) -> x)
+          $ map (\op -> Move (fst op, score (next op), next op)) ops
+    where
+        next op = snd op p
+
+newtype Path = Path [Move] deriving (Show)
+
+
+{-
+>>> moves (StackPair ([4,0,1,2,3],[]))
+[("ra",0,StackPair ([0,1,2,3,4],[])),("rr",0,StackPair ([0,1,2,3,4],[])),("sa",12,StackPair ([0,4,1,2,3],[])),("ss",12,StackPair ([0,4,1,2,3],[])),("pb",17,StackPair ([0,1,2,3],[4])),("sb",20,StackPair ([4,0,1,2,3],[])),("pa",20,StackPair ([4,0,1,2,3],[])),("rb",20,StackPair ([4,0,1,2,3],[])),("rrb",20,StackPair ([4,0,1,2,3],[])),("rra",30,StackPair ([3,4,0,1,2],[])),("rrr",30,StackPair ([3,4,0,1,2],[]))]
+>>> moves (StackPair ([0,1,2],[4,3]))
+[("sa",22,StackPair ([1,0,2],[4,3])),("sb",22,StackPair ([0,1,2],[3,4])),("rb",22,StackPair ([0,1,2],[3,4])),("rrb",22,StackPair ([0,1,2],[3,4])),("ss",24,StackPair ([1,0,2],[3,4])),("ra",26,StackPair ([1,2,0],[4,3])),("rra",26,StackPair ([2,0,1],[4,3])),("pb",27,StackPair ([1,2],[0,4,3])),("rr",28,StackPair ([1,2,0],[3,4])),("rrr",28,StackPair ([2,0,1],[3,4])),("pa",29,StackPair ([4,0,1,2],[3]))]
+-}
+
+newtype Position = Position (StackPair, Int)
+
+makeHashTable :: ST s (STArray s Int [StackPair])
+makeHashTable = do
+    newArray (0, 100000) []
+
+visit :: STArray s Int [StackPair] -> StackPair -> ST s ()
+visit arr p = do
+    { e <- readArray arr (hash p)
+    ; writeArray arr (hash p) (p : e)
+    }
+
+visited :: STArray s Int [StackPair] -> StackPair -> ST s Bool 
+visited arr p = do
+    { e <- readArray arr (hash p)
+    ; return $ elem p e
+    }
+
+aStar :: STArray s Int [StackPair] -> Int -> [Move] -> [Move]
+aStar _   _    []       = []
+aStar arr cost (m : ms) = aStar arr (cost + 1) (merge ms (step m))
+    where
+        step (Move (op, cost, p)) = moves p
+        merge a b = sortOn (\(Move (_,x,_)) -> x) $ a ++ map addCost b
+            where
+                addCost (Move (op, c, pair)) = Move (op, c + cost, pair)
+
+
+
+writeDummy = do
+    { arr <- makeHashTable
+    ; visit arr $ StackPair ([],[])
+    ; writeArray arr 10 []
+    }
+
+main :: IO ()
+main = do
+    { let x = writeDummy
+    ; return ()
+    }
