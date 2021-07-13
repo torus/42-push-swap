@@ -1,6 +1,7 @@
 module PushSwap where
 
-import Data.List (sortOn, mergeBy)
+import Data.List (sortOn)
+import Data.Lists (mergeBy)
 import Control.Monad.ST
 import Data.Array.ST
 
@@ -174,8 +175,8 @@ solve start = runST
                  }
 
 totalCost :: Path -> Int
---totalCost (m, p) = score p + length m
-totalCost _ = 0
+totalCost (m, p) = score p + length m
+--totalCost _ = 0
 
 bfs :: STArray s Int [Position] -> Frontier -> Frontier -> ST s (Maybe [Move])
 bfs pa [] [] = return Nothing
@@ -200,7 +201,7 @@ succs (ms, p) = [(m : ms, move p m) | m <- moves p]
 
 
 shuffled :: [Int]
-shuffled = [2, 1, 5, 3, 4, 0]
+shuffled = [2, 1, 5, 6, 3, 4, 0]
 
 {-
 >>> solve (StackPair ([0,1,2,3,4,5],[]))
