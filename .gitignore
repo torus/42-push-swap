@@ -1,1 +1,5 @@
 *.pdf
+dist-newstyle/
+*.o
+*.hi
+*.exe

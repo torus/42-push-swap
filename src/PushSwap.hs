@@ -1,4 +1,6 @@
-import Data.List (sortOn)
+module PushSwap where
+
+import Data.List (sortOn, mergeBy)
 import Control.Monad.ST
 import Data.Array.ST
 
@@ -171,6 +173,10 @@ solve start = runST
                  ; bfs pa [([], start)] []
                  }
 
+totalCost :: Path -> Int
+--totalCost (m, p) = score p + length m
+totalCost _ = 0
+
 bfs :: STArray s Int [Position] -> Frontier -> Frontier -> ST s (Maybe [Move])
 bfs pa [] [] = return Nothing
 bfs pa [] mqs = bfs pa mqs []
@@ -179,33 +185,29 @@ bfs pa ((ms, p) : mps) mqs
       else do { ps <- readArray pa k
               ; if p `elem` ps then bfs pa mps mqs
               ; else do { writeArray pa k (p : ps)
-                        ; bfs pa mps (succs (ms, p) ++ mqs)}}
+                        ; bfs pa mps
+                              $ mergeBy cmp (succs (ms, p)) mqs
+                              -- $ sortOn totalCost
+                              -- (succs (ms, p) ++ mqs)
+                        }
+              }
     where
         k = hash p
+        cmp a b = compare (totalCost a) (totalCost b)
 
 succs :: Path -> [Path]
 succs (ms, p) = [(m : ms, move p m) | m <- moves p]
 
 
 shuffled :: [Int]
-shuffled = [2, 6, 1, 5, 3, 4, 0]
+shuffled = [2, 1, 5, 3, 4, 0]
 
 {-
->>> solve (StackPair ([1,2,0,3,4,5],[]))
-Just ["pb","sa","pa","sa"]
->>> solve (StackPair ([4,0,1,2,3],[]))
->>> solve (StackPair ([1,2,3,4,0],[]))
-Just ["ra"]
-Just ["rra"]
->>> solve (StackPair ([1,2,3,4],[0]))
-Just ["pa"]
->>> solve (StackPair ([0],[1,2,3,4]))
-Just ["pa","pa","rr","pa","pa","ra","ra","sa"]
-
->>> solve (StackPair (shuffled, []))
-Just ["ra","pb","sa","pb","rrr","ss","rrr","pa","pa","ra","ra"]
-
-
-
+>>> solve (StackPair ([0,1,2,3,4,5],[]))
+>>> solve (StackPair ([1,0,2,3,4,5],[]))
+>>> solve (StackPair ([1,0,2,3,5,4],[]))
+Just []
+Just ["sa"]
+Just ["rra","rra","sa","ra","ra","sa"]
 
 -}
