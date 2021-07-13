@@ -67,7 +67,7 @@ stackHash [] = 0
 stackHash (a : as) = (a + stackHash as * 256) `mod` 100000
 
 hash :: StackPair -> Int
-hash (StackPair (a, b)) = stackHash a + stackHash b
+hash (StackPair (a, b)) = (stackHash a + stackHash b) `mod` 100000
 
 {-
 >>> stackHash [10, 20, 30]
@@ -187,6 +187,9 @@ succs :: Path -> [Path]
 succs (ms, p) = [(m : ms, move p m) | m <- moves p]
 
 
+shuffled :: [Int]
+shuffled = [2, 6, 1, 5, 3, 4, 0]
+
 {-
 >>> solve (StackPair ([1,2,0,3,4,5],[]))
 Just ["pb","sa","pa","sa"]
@@ -199,8 +202,8 @@ Just ["pa"]
 >>> solve (StackPair ([0],[1,2,3,4]))
 Just ["pa","pa","rr","pa","pa","ra","ra","sa"]
 
-01234
-
+>>> solve (StackPair (shuffled, []))
+Just ["ra","pb","sa","pb","rrr","ss","rrr","pa","pa","ra","ra"]
 
 
 
