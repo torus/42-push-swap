@@ -129,21 +129,22 @@ score (StackPair (a, b)) = scoreA a + scoreB b + length b
 0
  -}
 
-ops :: [([Char], StackPair -> StackPair)]
-ops = [ ("sa", sa), ("sb", sb), ("ss", ss)
-      , ("pa", pa), ("pb", pb)
-      , ("ra", ra), ("rb", rb), ("rr", rr)
-      , ("rra", rra), ("rrb", rrb), ("rrr", rrr)]
+newtype Move = Move ([Char], StackPair -> StackPair)
 
-newtype Move = Move ([Char], Int, StackPair) deriving (Show)
+instance Show Move where
+    show (Move (a, b)) = show a
+
+ops :: [Move]
+ops = [ Move ("sa", sa),   Move ("sb", sb),   Move ("ss", ss)
+      , Move ("pa", pa),   Move ("pb", pb)
+      , Move ("ra", ra),   Move ("rb", rb),   Move ("rr", rr)
+      , Move ("rra", rra), Move ("rrb", rrb), Move ("rrr", rrr)]
+
 moves :: StackPair -> [Move]
-moves p = sortOn (\(Move (_,x,_)) -> x)
-          $ map (\op -> Move (fst op, score (next op), next op)) ops
-    where
-        next op = snd op p
+moves p = ops
 
-newtype Path = Path [Move] deriving (Show)
-
+move :: StackPair -> Move -> Position
+move p (Move m) = snd m p
 
 {-
 >>> moves (StackPair ([4,0,1,2,3],[]))
@@ -152,43 +153,56 @@ newtype Path = Path [Move] deriving (Show)
 [("sa",22,StackPair ([1,0,2],[4,3])),("sb",22,StackPair ([0,1,2],[3,4])),("rb",22,StackPair ([0,1,2],[3,4])),("rrb",22,StackPair ([0,1,2],[3,4])),("ss",24,StackPair ([1,0,2],[3,4])),("ra",26,StackPair ([1,2,0],[4,3])),("rra",26,StackPair ([2,0,1],[4,3])),("pb",27,StackPair ([1,2],[0,4,3])),("rr",28,StackPair ([1,2,0],[3,4])),("rrr",28,StackPair ([2,0,1],[3,4])),("pa",29,StackPair ([4,0,1,2],[3]))]
 -}
 
-newtype Position = Position (StackPair, Int)
-
-makeHashTable :: ST s (STArray s Int [StackPair])
+makeHashTable :: ST s (STArray s Int [Position])
 makeHashTable = do
-    newArray (0, 100000) []
+    newArray (0, 100000 - 1) []
 
-visit :: STArray s Int [StackPair] -> StackPair -> ST s ()
-visit arr p = do
-    { e <- readArray arr (hash p)
-    ; writeArray arr (hash p) (p : e)
-    }
+type Position = StackPair
 
-visited :: STArray s Int [StackPair] -> StackPair -> ST s Bool 
-visited arr p = do
-    { e <- readArray arr (hash p)
-    ; return $ elem p e
-    }
+type Path = ([Move], Position)
+type Frontier = [Path]
 
-aStar :: STArray s Int [StackPair] -> Int -> [Move] -> [Move]
-aStar _   _    []       = []
-aStar arr cost (m : ms) = aStar arr (cost + 1) (merge ms (step m))
+solved :: Position -> Bool
+solved p = score p == 0
+
+solve :: Position -> Maybe [Move]
+solve start = runST
+            $ do { pa <- makeHashTable
+                 ; bfs pa [([], start)] []
+                 }
+
+bfs :: STArray s Int [Position] -> Frontier -> Frontier -> ST s (Maybe [Move])
+bfs pa [] [] = return Nothing
+bfs pa [] mqs = bfs pa mqs []
+bfs pa ((ms, p) : mps) mqs
+    = if solved p then return (Just (reverse ms))
+      else do { ps <- readArray pa k
+              ; if p `elem` ps then bfs pa mps mqs
+              ; else do { writeArray pa k (p : ps)
+                        ; bfs pa mps (succs (ms, p) ++ mqs)}}
     where
-        step (Move (op, cost, p)) = moves p
-        merge a b = sortOn (\(Move (_,x,_)) -> x) $ a ++ map addCost b
-            where
-                addCost (Move (op, c, pair)) = Move (op, c + cost, pair)
+        k = hash p
+
+succs :: Path -> [Path]
+succs (ms, p) = [(m : ms, move p m) | m <- moves p]
+
+
+{-
+>>> solve (StackPair ([1,2,0,3,4,5],[]))
+Just ["pb","sa","pa","sa"]
+>>> solve (StackPair ([4,0,1,2,3],[]))
+>>> solve (StackPair ([1,2,3,4,0],[]))
+Just ["ra"]
+Just ["rra"]
+>>> solve (StackPair ([1,2,3,4],[0]))
+Just ["pa"]
+>>> solve (StackPair ([0],[1,2,3,4]))
+Just ["pa","pa","rr","pa","pa","ra","ra","sa"]
+
+01234
 
 
 
-writeDummy = do
-    { arr <- makeHashTable
-    ; visit arr $ StackPair ([],[])
-    ; writeArray arr 10 []
-    }
 
-main :: IO ()
-main = do
-    { let x = writeDummy
-    ; return ()
-    }
+
+-}
