@@ -162,7 +162,7 @@ makeHashTable = do
 
 type Position = StackPair
 
-type Path = ([Move], Position)
+type Path = ([Move], Position, Int)
 type Frontier = [Path]
 
 solved :: Position -> Bool
@@ -171,25 +171,23 @@ solved p = score p == 0
 solve :: Position -> Maybe [Move]
 solve start = runST
             $ do { pa <- makeHashTable
-                 ; bfs pa [([], start)] []
+                 ; bfs pa [([], start, score start)] []
                  }
 
 totalCost :: Path -> Int
-totalCost (m, p) = score p + length m
+totalCost (_, _, c) = c
 --totalCost _ = 0
 
 bfs :: STArray s Int [Position] -> Frontier -> Frontier -> ST s (Maybe [Move])
 bfs pa [] [] = return Nothing
 bfs pa [] mqs = bfs pa mqs []
-bfs pa ((ms, p) : mps) mqs
+bfs pa ((ms, p, c) : mps) mqs
     = if solved p then return (Just (reverse ms))
       else do { ps <- readArray pa k
               ; if p `elem` ps then bfs pa mps mqs
               ; else do { writeArray pa k (p : ps)
                         ; bfs pa mps
-                              $ mergeBy cmp (succs (ms, p)) mqs
-                              -- $ sortOn totalCost
-                              -- (succs (ms, p) ++ mqs)
+                              $ mergeBy cmp (succs (ms, p, c)) mqs
                         }
               }
     where
@@ -197,11 +195,12 @@ bfs pa ((ms, p) : mps) mqs
         cmp a b = compare (totalCost a) (totalCost b)
 
 succs :: Path -> [Path]
-succs (ms, p) = [(m : ms, move p m) | m <- moves p]
+succs (ms, p, c) = [(m : ms, move p m, score (move p m) + length ms + 1)
+                    | m <- moves p]
 
 
 shuffled :: [Int]
-shuffled = [2, 1, 5, 6, 3, 4, 0]
+shuffled = [2, 1, 5, 6, 3, 7, 4, 0]
 
 {-
 >>> solve (StackPair ([0,1,2,3,4,5],[]))
