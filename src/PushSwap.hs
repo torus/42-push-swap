@@ -4,6 +4,7 @@ import Data.List (sortOn)
 import Data.Lists (mergeBy)
 import Control.Monad.ST
 import Data.Array.ST
+import Data.STRef
 
 newtype StackPair = StackPair ([Int], [Int]) deriving (Show, Eq)
 
@@ -100,16 +101,16 @@ hash (StackPair (a, b)) = (stackHash a + stackHash b) `mod` 100000
  -}
 
 scoreA :: [Int] -> Int
-scoreA s = iter s 0
+scoreA s = iter s 0 (-1)
     where
-        iter [] i = 0
-        iter (a : as) i = ((a - i) ^ 2) + iter as (i + 1)
+        iter [] _ _ = 0
+        iter (a : as) i b = (if b < a then 0 else b - a) + iter as (i + 1) a
 
 scoreB :: [Int] -> Int
-scoreB s = iter s $ length s - 1
+scoreB s = iter s (length s - 1) $ length s
     where
-        iter [] i = 0
-        iter (a : as) i = ((a - i) ^ 2) + iter as (i - 1)
+        iter [] _ _ = 0
+        iter (a : as) i b = (if b > a then 0 else a - b) + iter as (i - 1) a
 
 score :: StackPair -> Int
 score (StackPair (a, b)) = scoreA a + scoreB b + length b
@@ -168,11 +169,19 @@ type Frontier = [Path]
 solved :: Position -> Bool
 solved p = score p == 0
 
-solve :: Position -> Maybe [Move]
-solve start = runST
+solve :: Position -> (Maybe [Move], Int)
+solve start = (solution, total)
+    where
+        (solution, total) = runST
             $ do { pa <- makeHashTable
-                 ; bfs pa [([], start, score start)] []
+                 ; n <- newSTRef (0 :: Int)
+                 ; result <- bfs pa [([], start, score start)] []
+                 ; elems <- getElems pa
+                 ; let total = foldr k 0 elems
+                 ; return (result, total)
                  }
+                where
+                    k as m = m + length as
 
 totalCost :: Path -> Int
 totalCost (_, _, c) = c
@@ -197,10 +206,6 @@ bfs pa ((ms, p, c) : mps) mqs
 succs :: Path -> [Path]
 succs (ms, p, c) = [(m : ms, move p m, score (move p m) + length ms + 1)
                     | m <- moves p]
-
-
-shuffled :: [Int]
-shuffled = [2, 1, 5, 6, 3, 7, 4, 0]
 
 {-
 >>> solve (StackPair ([0,1,2,3,4,5],[]))
