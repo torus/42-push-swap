@@ -204,7 +204,8 @@ bfs pa ((ms, p, c) : mps) mqs
         cmp a b = compare (totalCost a) (totalCost b)
 
 succs :: Path -> [Path]
-succs (ms, p, c) = [(m : ms, move p m, score (move p m) + length ms + 1)
+succs (ms, p, c) = [let p' = move p m
+                      in (m : ms, p', score p' + length ms + 1)
                     | m <- moves p]
 
 {-
