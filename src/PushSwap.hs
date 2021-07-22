@@ -90,12 +90,12 @@ rbRec = recOp "rb" rb
 psPartition :: StackPair -> Int -> [[Char]] -> (StackPair, [[Char]])
 psPartition sp m ops
     | m == 0    = (sp, ops)
-    | c == 0    = psPartition sp'' (m - 1) ops''
+    | c == 0    = psPartition sp''  (m - 1)     ops''
     | otherwise = psPartition sp''' (m - c - 1) ops'''
     where
         p = topA sp
-        (sp', c, ops') = psPartitionIter sp 0 p ops
-        (sp'', ops'') = rbRec $ recRepeatOp "pa" (m - 1) pa (sp', ops')
+        (sp', c, ops')  = psPartitionIter sp 0 p ops
+        (sp'',  ops'')  = rbRec $ recRepeatOp "pa" (m - 1) pa (sp', ops')
         (sp''', ops''') = rbRec $ recRepeatOp "pa" (m - c - 1) pa $ psPartition sp' c ops'
 
 psPartitionIter :: StackPair -> Int -> Int -> [[Char]] -> (StackPair, Int, [[Char]])
