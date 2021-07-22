@@ -25,6 +25,10 @@ stackSwap [] = []
 stackSwap [a] = [a]
 stackSwap (a : b : as) = b : a : as
 
+
+recOp :: [Char] -> (StackPair -> StackPair) -> (StackPair, [[Char]]) -> (StackPair, [[Char]])
+recOp name op (sp, ops) = (op sp, name : ops)
+
 sa :: StackPair -> StackPair
 sa p = makeStackPair (stackSwap (stackA p)) (stackB p)
 
@@ -73,34 +77,42 @@ repeatOp :: Int -> (StackPair -> StackPair) -> StackPair -> StackPair
 repeatOp 0 op sp = sp
 repeatOp n op sp = op $ repeatOp (n - 1) op sp
 
+recRepeatOp :: [Char] -> Int -> (StackPair -> StackPair)
+            -> (StackPair, [[Char]]) -> (StackPair, [[Char]])
+recRepeatOp name n op (sp, ops) = (repeatOp n op sp, replicate n name ++ ops)
+
 topA :: StackPair -> Int
 topA sp = head (stackA sp)
 
-psPartition :: StackPair -> Int -> StackPair
-psPartition sp m
-    | m == 0    = sp
-    | c == 0    = psPartition (rb $ repeatOp (m - 1) pa sp') (m - 1)
-    | otherwise = psPartition sp'' (m - c - 1)
+rbRec :: (StackPair, [[Char]]) -> (StackPair, [[Char]])
+rbRec = recOp "rb" rb
+
+psPartition :: StackPair -> Int -> [[Char]] -> (StackPair, [[Char]])
+psPartition sp m ops
+    | m == 0    = (sp, ops)
+    | c == 0    = psPartition sp'' (m - 1) ops''
+    | otherwise = psPartition sp''' (m - c - 1) ops'''
     where
         p = topA sp
-        (sp', c) = psPartitionIter sp 0 p
-        sp'' = rb $ repeatOp (m - c - 1) pa $ psPartition sp' c
+        (sp', c, ops') = psPartitionIter sp 0 p ops
+        (sp'', ops'') = rbRec $ recRepeatOp "pa" (m - 1) pa (sp', ops')
+        (sp''', ops''') = rbRec $ recRepeatOp "pa" (m - c - 1) pa $ psPartition sp' c ops'
 
-psPartitionIter :: StackPair -> Int -> Int -> (StackPair, Int)
-psPartitionIter sp c p =
+psPartitionIter :: StackPair -> Int -> Int -> [[Char]] -> (StackPair, Int, [[Char]])
+psPartitionIter sp c p ops =
     if c < length (stackA sp) then
         if topA sp > p then
-            psPartitionIter (ra sp) (c + 1) p
+            psPartitionIter (ra sp) (c + 1) p ("ra" : ops)
         else
-            psPartitionIter (pb sp) c p
+            psPartitionIter (pb sp) c p ("pb" : ops)
     else
-        (sp, c)
+        (sp, c, ops)
 
 makeStackPair' :: [Int] -> [Int] -> StackPair
 makeStackPair' l r = StackPair (r, reverse l)
 
-solve :: StackPair -> StackPair
-solve sp = psPartition sp $ length (stackA sp)
+solve :: StackPair -> (StackPair, [[Char]])
+solve sp = (sp', reverse ops) where (sp', ops) = psPartition sp (length (stackA sp)) []
 
 {-
 >>> repeatOp 3 pb $ makeStackPair' [] [1,2,3,4,5]

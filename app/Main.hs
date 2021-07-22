@@ -5,7 +5,9 @@ import PushSwap
 shuffled :: [Int]
 shuffled = [2, 1, 5, 3, 4, 0]
 
-exec ss = do { print (solve (StackPair (ss, []))) }
+exec ss = do { print ss
+             ; print ops }
+             where (sp', ops) = solve (StackPair (ss, []))
 
 main :: IO ()
 main = do
