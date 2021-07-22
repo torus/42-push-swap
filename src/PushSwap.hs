@@ -79,12 +79,12 @@ topA sp = head (stackA sp)
 psPartition :: StackPair -> Int -> StackPair
 psPartition sp m
     | m == 0    = sp
-    | c == 0    = psPartition (repeatOp (m - 1) pb sp') (m - 1)
-    | c == 1    = psPartition ((repeatOp (m - 1) pb . rb . pb) sp') (m - 1)
-    | otherwise = psPartition sp' c
+    | c == 0    = psPartition (rb $ repeatOp (m - 1) pa sp') (m - 1)
+    | otherwise = psPartition sp'' (m - c - 1)
     where
         p = topA sp
         (sp', c) = psPartitionIter sp 0 p
+        sp'' = rb $ repeatOp (m - c - 1) pa $ psPartition sp' c
 
 psPartitionIter :: StackPair -> Int -> Int -> (StackPair, Int)
 psPartitionIter sp c p =
@@ -99,6 +99,9 @@ psPartitionIter sp c p =
 makeStackPair' :: [Int] -> [Int] -> StackPair
 makeStackPair' l r = StackPair (r, reverse l)
 
+solve :: StackPair -> StackPair
+solve sp = psPartition sp $ length (stackA sp)
+
 {-
 >>> repeatOp 3 pb $ makeStackPair' [] [1,2,3,4,5]
 >>> makeStackPair' [4,5] [0,1,2,3]
@@ -109,5 +112,5 @@ makeStackPair' l r = StackPair (r, reverse l)
 >>> psPartitionIter (makeStackPair' [3,2,1,0] [4,5,6]) 0 4
 >>> psPartition (makeStackPair' [] [3,2,1,0,4,5,6]) 7
 ([3,2,1,0,4] [5,6],2)
-[6,3,2,1,0,4,5] []
+[0,1,2,3,4,5,6] []
  -}
