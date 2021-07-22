@@ -112,7 +112,10 @@ makeStackPair' :: [Int] -> [Int] -> StackPair
 makeStackPair' l r = StackPair (r, reverse l)
 
 solve :: StackPair -> (StackPair, [[Char]])
-solve sp = (sp', reverse ops) where (sp', ops) = psPartition sp (length (stackA sp)) []
+solve sp = (sp', reverse ops)
+            where
+                (sp', ops) = recRepeatOp "pa" len pa $ psPartition sp len []
+                len = length (stackA sp)
 
 {-
 >>> repeatOp 3 pb $ makeStackPair' [] [1,2,3,4,5]

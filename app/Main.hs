@@ -5,8 +5,8 @@ import System.Random.Shuffle
 import PushSwap
 
 exec ss = do { print $ length ss
---             ; print ops
---             ; print sp'
+             ; print ops
+             ; print sp'
              ; print $ length ops }
              where (sp', ops) = solve (StackPair (ss, []))
 
@@ -19,14 +19,8 @@ main = do
     ; exec [2, 1, 5, 6, 3, 4, 0]
     ; exec [2, 7, 1, 5, 6, 3, 4, 0]
     ; gen <- newStdGen
-    ; exec $ shuffle' [0..499] 500 gen
+    ; exec $ shuffle' [0..99] 100 gen
     ; gen <- newStdGen
-    ; exec $ shuffle' [0..499] 500 gen
-    ; gen <- newStdGen
-    ; exec $ shuffle' [0..499] 500 gen
-    ; gen <- newStdGen
-    ; exec $ shuffle' [0..499] 500 gen
-    ; gen <- newStdGen
-    ; exec $ shuffle' [0..499] 500 gen
+    ; exec $ shuffle' [0..99] 100 gen
 
     }
