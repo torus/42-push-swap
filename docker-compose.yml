@@ -1,7 +1,8 @@
 version: '3'
 services:
-  gosh:
-    image: practicalscheme/gauche
+  ghc:
+    image: haskell:8
     volumes:
       - .:/code
+      - ./cabal:/root/.cabal
     working_dir: /code
