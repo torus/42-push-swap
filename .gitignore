@@ -4,3 +4,4 @@
 *.hi
 *.exe
 /cabal/
+checker_linux
