@@ -54,6 +54,15 @@ executable push-swap
     build-depends:
         base ^>=4.14.1.0,
         push-swap,
+
+    hs-source-dirs:   app
+    default-language: Haskell2010
+
+executable shuffled
+    main-is:          Shuffled.hs
+
+    build-depends:
+        base ^>=4.14.1.0,
         random,
         random-shuffle
 
