@@ -89,26 +89,24 @@ rbRec = recOp "rb" rb
 paRec = recOp "pa" pa
 raRec = recOp "ra" ra
 
-psPartition :: StackPair -> Int -> [[Char]] -> (StackPair, [[Char]])
-psPartition sp m ops
+psPartition :: Int -> (StackPair, [[Char]]) -> (StackPair, [[Char]])
+psPartition m (sp, ops)
     | m == 0    = (sp, ops)
-    | c == 0    = psPartition sp''  (m - 1)     ops''
-    | otherwise = psPartition sp''' (m - c - 1) ops'''
+    | c == 0    = psPartition (m - 1)     (sp'', ops'')
+    | otherwise = psPartition (m - c - 1) (sp''', ops''')
     where
         p = topA sp
-        (sp', c, ops')  = psPartitionIter sp 0 p ops
+        (sp', c, ops')  = psPartitionIter 0 p (sp, ops)
         (sp'',  ops'')  = rbRec $ psPartitionIterRev (m - 1) p (sp', ops')
-        (sp''', ops''') = rbRec $ psPartitionIterRev (m - c - 1) p $ psPartition sp' c ops'
---      (sp'',  ops'')  = rbRec $ recRepeatOp "pa" (m - 1) pa (sp', ops')
---      (sp''', ops''') = rbRec $ recRepeatOp "pa" (m - c - 1) pa $ psPartition sp' c ops'
+        (sp''', ops''') = rbRec $ psPartitionIterRev (m - c - 1) p $ psPartition c (sp', ops')
 
-psPartitionIter :: StackPair -> Int -> Int -> [[Char]] -> (StackPair, Int, [[Char]])
-psPartitionIter sp c p ops =
+psPartitionIter :: Int -> Int -> (StackPair, [[Char]]) -> (StackPair, Int, [[Char]])
+psPartitionIter c p (sp, ops) =
     if c < length (stackA sp) then
         if topA sp > p then
-            psPartitionIter (ra sp) (c + 1) p ("ra" : ops)
+            psPartitionIter (c + 1) p (ra sp, "ra" : ops)
         else
-            psPartitionIter (pb sp) c p ("pb" : ops)
+            psPartitionIter c       p (pb sp, "pb" : ops)
     else
         (sp, c, ops)
 
@@ -128,21 +126,13 @@ solve sp
     | valid (stackA sp') = Just (sp', reverse ops)
     | otherwise = Nothing
     where
-        (sp', ops) = recRepeatOp "pa" len pa $ psPartition sp len []
+        (sp', ops) = recRepeatOp "pa" len pa $ psPartition len (sp, [])
         len = length (stackA sp)
         valid [] = True
         valid [x] = True
         valid (x1 : x2 : xs) = x1 < x2 && valid (x2 : xs)
 
 {-
->>> repeatOp 3 pb $ makeStackPair' [] [1,2,3,4,5]
->>> makeStackPair' [4,5] [0,1,2,3]
-[1,2,3] [4,5]
-[4,5] [0,1,2,3]
->>> psPartitionIter (makeStackPair' [] [3,2,1,0,4,5,6]) 0 3
-([3,2,1,0] [4,5,6],3)
->>> psPartitionIter (makeStackPair' [3,2,1,0] [4,5,6]) 0 4
->>> psPartition (makeStackPair' [] [3,2,1,0,4,5,6]) 7
-([3,2,1,0,4] [5,6],2)
-[0,1,2,3,4,5,6] []
- -}
+>>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
+Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","ra","pb","pb","ra","pb","pb","ra","ra","pb","pb","ra","ra","pb","ra","pb","rb","rb","pa","rb","pb","rb","pa","pa","pa","pa","pa","rb","pb","ra","ra","pb","ra","pb","ra","pb","pb","rb","pa","rb","pb","rb","pa","rb","pb","rb","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa"])
+-}
