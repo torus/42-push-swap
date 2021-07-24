@@ -111,11 +111,16 @@ psPartitionIter sp c p ops =
 makeStackPair' :: [Int] -> [Int] -> StackPair
 makeStackPair' l r = StackPair (r, reverse l)
 
-solve :: StackPair -> (StackPair, [[Char]])
-solve sp = (sp', reverse ops)
+solve :: StackPair -> Maybe (StackPair, [[Char]])
+solve sp
+    | valid (stackA sp') = Just (sp', reverse ops)
+    | otherwise = Nothing
             where
                 (sp', ops) = recRepeatOp "pa" len pa $ psPartition sp len []
                 len = length (stackA sp)
+        valid [] = True
+        valid [x] = True
+        valid (x1 : x2 : xs) = x1 < x2 && valid (x2 : xs)
 
 {-
 >>> repeatOp 3 pb $ makeStackPair' [] [1,2,3,4,5]

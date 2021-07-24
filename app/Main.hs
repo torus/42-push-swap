@@ -7,10 +7,10 @@ exec' ss = do { print $ length ss
              ; print ops
              ; print sp'
              ; print $ length ops }
-             where (sp', ops) = solve (StackPair (ss, []))
+             where Just (sp', ops) = solve (StackPair (ss, []))
 
 exec ss = do { mapM putStrLn ops}
-    where (sp', ops) = solve (StackPair (ss, []))
+    where Just (sp', ops) = solve (StackPair (ss, []))
 
 main :: IO ()
 main = do
