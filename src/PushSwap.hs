@@ -86,6 +86,8 @@ topA sp = head (stackA sp)
 
 rbRec :: (StackPair, [[Char]]) -> (StackPair, [[Char]])
 rbRec = recOp "rb" rb
+paRec = recOp "pa" pa
+raRec = recOp "ra" ra
 
 psPartition :: StackPair -> Int -> [[Char]] -> (StackPair, [[Char]])
 psPartition sp m ops
@@ -95,8 +97,10 @@ psPartition sp m ops
     where
         p = topA sp
         (sp', c, ops')  = psPartitionIter sp 0 p ops
-        (sp'',  ops'')  = rbRec $ recRepeatOp "pa" (m - 1) pa (sp', ops')
-        (sp''', ops''') = rbRec $ recRepeatOp "pa" (m - c - 1) pa $ psPartition sp' c ops'
+        (sp'',  ops'')  = rbRec $ psPartitionIterRev (m - 1) p (sp', ops')
+        (sp''', ops''') = rbRec $ psPartitionIterRev (m - c - 1) p $ psPartition sp' c ops'
+--      (sp'',  ops'')  = rbRec $ recRepeatOp "pa" (m - 1) pa (sp', ops')
+--      (sp''', ops''') = rbRec $ recRepeatOp "pa" (m - c - 1) pa $ psPartition sp' c ops'
 
 psPartitionIter :: StackPair -> Int -> Int -> [[Char]] -> (StackPair, Int, [[Char]])
 psPartitionIter sp c p ops =
@@ -108,6 +112,14 @@ psPartitionIter sp c p ops =
     else
         (sp, c, ops)
 
+psPartitionIterRev :: Int -> Int -> (StackPair,  [[Char]]) -> (StackPair, [[Char]])
+psPartitionIterRev 0 p (sp, ops) = (sp, ops)
+psPartitionIterRev c p (sp, ops) =
+        if not (null (stackA sp)) && topA sp > p then
+            psPartitionIterRev (c - 1) p $ paRec $ raRec (sp, ops)
+        else
+            psPartitionIterRev (c - 1) p $ paRec (sp, ops)
+
 makeStackPair' :: [Int] -> [Int] -> StackPair
 makeStackPair' l r = StackPair (r, reverse l)
 
@@ -115,9 +127,9 @@ solve :: StackPair -> Maybe (StackPair, [[Char]])
 solve sp
     | valid (stackA sp') = Just (sp', reverse ops)
     | otherwise = Nothing
-            where
-                (sp', ops) = recRepeatOp "pa" len pa $ psPartition sp len []
-                len = length (stackA sp)
+    where
+        (sp', ops) = recRepeatOp "pa" len pa $ psPartition sp len []
+        len = length (stackA sp)
         valid [] = True
         valid [x] = True
         valid (x1 : x2 : xs) = x1 < x2 && valid (x2 : xs)
