@@ -85,10 +85,11 @@ topA :: StackPair -> Int
 topA sp = head (stackA sp)
 topB sp = head (stackB sp)
 
-rbRec :: (StackPair, [[Char]]) -> (StackPair, [[Char]])
+raRec, rbRec, paRec, pbRec :: (StackPair, [[Char]]) -> (StackPair, [[Char]])
 rbRec = recOp "rb" rb
-paRec = recOp "pa" pa
 raRec = recOp "ra" ra
+paRec = recOp "pa" pa
+pbRec = recOp "pb" pb
 
 psPartition :: Int -> (StackPair, [[Char]]) -> (StackPair, [[Char]])
 psPartition m (sp, ops)
@@ -104,9 +105,9 @@ psPartitionIter :: Int -> Int -> (StackPair, [[Char]]) -> (StackPair, Int, [[Cha
 psPartitionIter c p (sp, ops) =
     if c < length (stackA sp) then
         if topA sp > p then
-            psPartitionIter (c + 1) p (ra sp, "ra" : ops)
+            psPartitionIter (c + 1) p $ raRec (sp, ops)
         else
-            psPartitionIter c       p (pb sp, "pb" : ops)
+            psPartitionIter c       p $ pbRec (sp, ops)
     else
         (sp, c, ops)
 
