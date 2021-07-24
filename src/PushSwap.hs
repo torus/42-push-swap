@@ -93,14 +93,12 @@ raRec = recOp "ra" ra
 psPartition :: Int -> (StackPair, [[Char]]) -> (StackPair, [[Char]])
 psPartition m (sp, ops)
     | m == 0    = (sp, ops)
-    | c == 0    = psPartition (m - 1)     (sp'', ops'')
-    | otherwise = psPartition (m - c - 1) (sp''', ops''')
+    | c == 0    = (next . rbRec . goback)                 (sp', ops')
+    | otherwise = (next . rbRec . goback . psPartition c) (sp', ops')
     where
-        p = topA sp
-        (sp', c, ops')  = psPartitionIter 0 p (sp, ops)
-        (sp'',  ops'')  = (rbRec . goback (m - 1))                 (sp', ops')
-        (sp''', ops''') = (rbRec . goback (m - c - 1) . psPartition c) (sp', ops')
-        goback c        = psPartitionIterRev c (topB sp')
+        (sp', c, ops')  = psPartitionIter    0           (topA sp) (sp, ops)
+        goback          = psPartitionIterRev (m - c - 1) (topB sp')
+        next            = psPartition (m - c - 1)
 
 psPartitionIter :: Int -> Int -> (StackPair, [[Char]]) -> (StackPair, Int, [[Char]])
 psPartitionIter c p (sp, ops) =
