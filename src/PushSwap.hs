@@ -83,6 +83,7 @@ recRepeatOp name n op (sp, ops) = (repeatOp n op sp, replicate n name ++ ops)
 
 topA :: StackPair -> Int
 topA sp = head (stackA sp)
+topB sp = head (stackB sp)
 
 rbRec :: (StackPair, [[Char]]) -> (StackPair, [[Char]])
 rbRec = recOp "rb" rb
@@ -97,8 +98,9 @@ psPartition m (sp, ops)
     where
         p = topA sp
         (sp', c, ops')  = psPartitionIter 0 p (sp, ops)
-        (sp'',  ops'')  = rbRec $ psPartitionIterRev (m - 1) p (sp', ops')
-        (sp''', ops''') = rbRec $ psPartitionIterRev (m - c - 1) p $ psPartition c (sp', ops')
+        (sp'',  ops'')  = (rbRec . goback (m - 1))                 (sp', ops')
+        (sp''', ops''') = (rbRec . goback (m - c - 1) . psPartition c) (sp', ops')
+        goback c        = psPartitionIterRev c (topB sp')
 
 psPartitionIter :: Int -> Int -> (StackPair, [[Char]]) -> (StackPair, Int, [[Char]])
 psPartitionIter c p (sp, ops) =
@@ -134,5 +136,5 @@ solve sp
 
 {-
 >>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
-Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","ra","pb","pb","ra","pb","pb","ra","ra","pb","pb","ra","ra","pb","ra","pb","rb","rb","pa","rb","pb","rb","pa","pa","pa","pa","pa","rb","pb","ra","ra","pb","ra","pb","ra","pb","pb","rb","pa","rb","pb","rb","pa","rb","pb","rb","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa"])
+Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","ra","pb","pb","ra","pb","pb","ra","ra","pb","pb","ra","ra","pb","ra","pb","rb","rb","pa","rb","pb","rb","pa","pa","pa","ra","pa","ra","pa","rb","pb","pb","ra","ra","ra","pb","ra","ra","pb","pb","pa","rb","pb","rb","rb","pa","rb","pb","rb","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa"])
 -}
