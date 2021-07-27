@@ -94,14 +94,13 @@ pbRec = recOp "pb" pb
 psPartition :: Int -> (StackPair, [[Char]]) -> (StackPair, [[Char]])
 psPartition m (sp, ops)
     | m == 0    = (sp, ops)
-    | c == 0    = (next . rbRec . goback)                 (sp', ops')
-    | otherwise = (next . rbRec . goback . psPartition c) (sp', ops')
+    | c == 0    = (next . goback)                 (sp', ops')
+    | otherwise = (next . goback . psPartition c) (sp', ops')
     where
---        (sp', c, ops')  = psPartitionIter    0           (pivot (stackA sp)) (sp, ops)
-        (sp', c, ops')  = psPartitionIter    0           (topA sp) (sp, ops)
-        goback          = psPartitionIterRev (m - c - 1) (topB sp')
+        (sp', c, ops')  = psPartitionIter    0           p (sp, ops)
+        goback          = psPartitionIterRev (m - c) (topB sp') p
         next            = psPartition (m - c - 1)
-        pivot as        = medianOfMedians as
+        p               = medianOfMedians (stackA sp)
 
 median5 :: [Int] -> Int
 median5 as
@@ -119,10 +118,10 @@ split5 as
     | otherwise     = [as]
 
 {-
->>> psPartition 7 ((makeStackPair' [] [1,2,3,4,5,6,7]), [])
+>>> psPartition 10 ((makeStackPair' [] [5,1,7,3,4,6,0,2,8,9]), [])
 >>> psPartition 10 ((makeStackPair' [] [1,2,3,4,5,6,7,8,9,10]), [])
-([1,2,3,4,5,6,7] [],["rb","rb","rb","rb","rb","rb","rb","pb","ra","pb","ra","ra","pb","ra","ra","ra","pb","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","ra","pb"])
-([1,2,3,4,5,6,7,8,9,10] [],["rb","rb","rb","rb","rb","rb","rb","rb","rb","rb","pb","ra","pb","ra","ra","pb","ra","ra","ra","pb","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","ra","ra","ra","ra","pb"])
+([0,1,2,3,4,5,6,7,8,9] [],["rb","pb","rb","pa","rb","rb","pb","ra","pb","ra","ra","pb","pb","pa","ra","pa","rb","pa","pa","rb","rb","pb","ra","pb","pa","rb","pa","rb","rb","pb","ra","pb","ra","ra","pb","pb","pb","ra","ra","pb","pb","ra","pb","pb","ra","pb","ra"])
+([1,2,3,4,5,6,7,8,9,10] [],["rb","rb","pb","ra","pb","pa","pa","rb","rb","rb","pb","ra","pb","pa","pa","rb","rb","pb","pa","rb","rb","rb","pb","ra","pb","ra","ra","pb","pb","ra","ra","ra","ra","pb","pb","pb","ra","ra","ra","ra","ra","ra","ra","pb","pb","pb"])
 
 
 >>> median5 [1]
@@ -155,13 +154,16 @@ psPartitionIter c p (sp, ops) =
     else
         (sp, c, ops)
 
-psPartitionIterRev :: Int -> Int -> (StackPair,  [[Char]]) -> (StackPair, [[Char]])
-psPartitionIterRev 0 p (sp, ops) = (sp, ops)
-psPartitionIterRev c p (sp, ops) =
-        if not (null (stackA sp)) && topA sp > p then
-            psPartitionIterRev (c - 1) p $ paRec $ raRec (sp, ops)
-        else
-            psPartitionIterRev (c - 1) p $ paRec (sp, ops)
+psPartitionIterRev :: Int -> Int -> Int -> (StackPair,  [[Char]]) -> (StackPair, [[Char]])
+psPartitionIterRev 0 p pp (sp, ops) = (sp, ops)
+psPartitionIterRev c p pp (sp, ops)
+    | topB sp == pp = (psPartitionIterRev (c - 1) p pp . rbRec) (sp, ops)
+    | otherwise     = op (sp, ops)
+    where
+        op = if not (null (stackA sp)) && topA sp > p then
+                psPartitionIterRev (c - 1) p pp . paRec . raRec
+            else
+                psPartitionIterRev (c - 1) p pp . paRec
 
 makeStackPair' :: [Int] -> [Int] -> StackPair
 makeStackPair' l r = StackPair (r, reverse l)
@@ -179,5 +181,5 @@ solve sp
 
 {-
 >>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
-Nothing
+Just ([] [0,1,2,3,4,5,6,7,8,9],["ra","pb","ra","pb","pb","ra","pb","pb","ra","ra","pb","pb","pb","ra","ra","pb","ra","pb","rb","rb","pa","rb","pa","pb","ra","pb","rb","rb","pa","pa","rb","pa","ra","pa","pb","pb","ra","ra","pb","ra","pb","rb","rb","pa","rb","pb","rb","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa"])
 -}
