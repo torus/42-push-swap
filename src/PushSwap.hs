@@ -1,7 +1,7 @@
 module PushSwap where
 
-import Data.List (sortOn)
-import Data.Lists (mergeBy)
+import Data.List
+import Data.Lists
 import Control.Monad.ST
 import Data.Array.ST
 import Data.STRef
@@ -97,9 +97,53 @@ psPartition m (sp, ops)
     | c == 0    = (next . rbRec . goback)                 (sp', ops')
     | otherwise = (next . rbRec . goback . psPartition c) (sp', ops')
     where
+--        (sp', c, ops')  = psPartitionIter    0           (pivot (stackA sp)) (sp, ops)
         (sp', c, ops')  = psPartitionIter    0           (topA sp) (sp, ops)
         goback          = psPartitionIterRev (m - c - 1) (topB sp')
         next            = psPartition (m - c - 1)
+        pivot as        = medianOfMedians as
+
+median5 :: [Int] -> Int
+median5 as
+    | odd (length as) = sort as !! (length as `div` 2)
+    | otherwise       = sort as !! ((length as `div` 2) - 1)
+
+medianOfMedians :: [Int] -> Int
+medianOfMedians as
+    | length as > 5 = medianOfMedians $ map median5 (split5 as)
+    | otherwise     = median5 as
+
+split5 :: [Int] -> [[Int]]
+split5 as
+    | length as > 5 = take 5 as : split5 (drop 5 as)
+    | otherwise     = [as]
+
+{-
+>>> psPartition 7 ((makeStackPair' [] [1,2,3,4,5,6,7]), [])
+>>> psPartition 10 ((makeStackPair' [] [1,2,3,4,5,6,7,8,9,10]), [])
+([1,2,3,4,5,6,7] [],["rb","rb","rb","rb","rb","rb","rb","pb","ra","pb","ra","ra","pb","ra","ra","ra","pb","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","ra","pb"])
+([1,2,3,4,5,6,7,8,9,10] [],["rb","rb","rb","rb","rb","rb","rb","rb","rb","rb","pb","ra","pb","ra","ra","pb","ra","ra","ra","pb","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","ra","ra","ra","pb","ra","ra","ra","ra","ra","ra","ra","ra","ra","pb"])
+
+
+>>> median5 [1]
+1
+
+>>> split5 [1,2,3,4,5,6,7,8,9,10]
+[[1,2,3,4,5],[6,7,8,9,10]]
+
+>>> map median5 [[1,2,3,4,5],[6,7,8,9,10]]
+[3,8]
+
+>>> medianOfMedians [11,12,13,14,15,16,17,18,19,20]
+>>> medianOfMedians [1,2,3,4]
+>>> medianOfMedians [1,2]
+>>> medianOfMedians [1]
+13
+2
+1
+1
+-}
+
 
 psPartitionIter :: Int -> Int -> (StackPair, [[Char]]) -> (StackPair, Int, [[Char]])
 psPartitionIter c p (sp, ops) =
@@ -135,5 +179,5 @@ solve sp
 
 {-
 >>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
-Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","ra","pb","pb","ra","pb","pb","ra","ra","pb","pb","ra","ra","pb","ra","pb","rb","rb","pa","rb","pb","rb","pa","pa","pa","ra","pa","ra","pa","rb","pb","pb","ra","ra","ra","pb","ra","ra","pb","pb","pa","rb","pb","rb","rb","pa","rb","pb","rb","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa"])
+Nothing
 -}
