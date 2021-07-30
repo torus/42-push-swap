@@ -26,7 +26,7 @@ stackSwap [a] = [a]
 stackSwap (a : b : as) = b : a : as
 
 
-recOp :: [Char] -> (StackPair -> StackPair) -> (StackPair, [[Char]]) -> (StackPair, [[Char]])
+recOp :: String -> (StackPair -> StackPair) -> (StackPair, [String]) -> (StackPair, [String])
 recOp name op (sp, ops) = (op sp, name : ops)
 
 sa :: StackPair -> StackPair
@@ -77,21 +77,24 @@ repeatOp :: Int -> (StackPair -> StackPair) -> StackPair -> StackPair
 repeatOp 0 op sp = sp
 repeatOp n op sp = op $ repeatOp (n - 1) op sp
 
-recRepeatOp :: [Char] -> Int -> (StackPair -> StackPair)
-            -> (StackPair, [[Char]]) -> (StackPair, [[Char]])
+recRepeatOp :: String -> Int -> (StackPair -> StackPair)
+            -> (StackPair, [String]) -> (StackPair, [String])
 recRepeatOp name n op (sp, ops) = (repeatOp n op sp, replicate n name ++ ops)
 
 topA :: StackPair -> Int
 topA sp = head (stackA sp)
 topB sp = head (stackB sp)
 
-raRec, rbRec, paRec, pbRec :: (StackPair, [[Char]]) -> (StackPair, [[Char]])
+raRec, rbRec, paRec, pbRec, saRec, sbRec, ssRec :: (StackPair, [String]) -> (StackPair, [String])
 rbRec = recOp "rb" rb
 raRec = recOp "ra" ra
 paRec = recOp "pa" pa
 pbRec = recOp "pb" pb
+saRec = recOp "sa" sa
+sbRec = recOp "sb" sb
+ssRec = recOp "ss" ss
 
-psPartition :: Int -> (StackPair, [[Char]]) -> (StackPair, [[Char]])
+psPartition :: Int -> (StackPair, [String]) -> (StackPair, [String])
 psPartition m (sp, ops)
     | m == 0    = (sp, ops)
     | c == 0    = (next . goback)                 (sp', ops')
@@ -106,9 +109,10 @@ psPartition m (sp, ops)
 median5 :: [Int] -> Int
 median5 as
     | odd (length as) = sort as !! (length as `div` 2)
-    | otherwise       = sort as !! ((length as `div` 2) - 1)
+    | otherwise       = sort as !! (length as `div` 2 - 1)
 
 medianOfMedians :: [Int] -> Int
+medianOfMedians [] = 0
 medianOfMedians as
     | length as > 5 = medianOfMedians $ map median5 (split5 as)
     | otherwise     = median5 as
@@ -121,9 +125,8 @@ split5 as
 {-
 >>> psPartition 10 ((makeStackPair' [] [5,1,7,3,4,6,0,2,8,9]), [])
 >>> psPartition 10 ((makeStackPair' [] [1,2,3,4,5,6,7,8,9,10]), [])
-([0,1,2,3,4,5,6,7,8,9] [],["rb","pb","rb","pa","rb","rb","pb","ra","pb","ra","ra","pb","pb","pa","ra","pa","rb","pa","pa","rb","rb","pb","ra","pb","pa","rb","pa","rb","rb","pb","ra","pb","ra","ra","pb","pb","pb","ra","ra","pb","pb","ra","pb","pb","ra","pb","ra"])
-([1,2,3,4,5,6,7,8,9,10] [],["rb","rb","pb","ra","pb","pa","pa","rb","rb","rb","pb","ra","pb","pa","pa","rb","rb","pb","pa","rb","rb","rb","pb","ra","pb","ra","ra","pb","pb","ra","ra","ra","ra","pb","pb","pb","ra","ra","ra","ra","ra","ra","ra","pb","pb","pb"])
-
+([0,1,2,3,4,5,6,7,8,9] [],["rb","pb","pa","rb","rb","rb","pb","ra","pb","sa","ra","sa","ra","pb","pb","sa","pa","ra","pa","rb","pa","pa","rb","rb","pb","ra","pb","sa","pa","rb","pa","rb","rb","pb","ra","pb","sa","ra","sa","pb","sa","ra","sa","pb","sa","pb","sa","ra","sa","ra","ra","pb","sa","pb","sa","ra","sa","pb","sa","pb","sa","ra","pb","sa"])
+([1,2,3,4,5,6,7,8,9,10] [],["rb","rb","pb","ra","pb","pa","pa","rb","rb","rb","rb","rb","pb","ra","pb","sa","pa","rb","pa","rb","rb","pb","ra","pb","sa","ra","sa","pb","sa","ra","sa","pb","sa","pb","sa","ra","sa","pb","sa","ra","sa","ra","sa","ra","sa","ra","sa","ra","sa","pb","sa","ra","sa","ra","sa","ra","sa","ra","sa","ra","sa","ra","sa","ra","ra","ra","ra","ra","ra","pb","pb","pb"])
 
 >>> median5 [1]
 1
@@ -145,17 +148,27 @@ split5 as
 -}
 
 
-psPartitionIter :: Int -> Int -> (StackPair, [[Char]]) -> (StackPair, Int, [[Char]])
-psPartitionIter c p (sp, ops) =
-    if c < length (stackA sp) then
-        if topA sp > p then
-            psPartitionIter (c + 1) p $ raRec (sp, ops)
-        else
-            psPartitionIter c       p $ pbRec (sp, ops)
-    else
-        (sp, c, ops)
+psPartitionIter :: Int -> Int -> (StackPair, [String]) -> (StackPair, Int, [String])
+psPartitionIter c p (sp, ops) = part c p (sp, ops)
+    where
+        part c p (sp, ops) =
+            if c < length (stackA sp) then
+                if topA sp' > p then
+                    psPartitionIter (c + 1) p $ raRec (sp', ops')
+                else
+                    psPartitionIter c       p $ pbRec (sp', ops')
+            else
+                (sp, c, ops)
+        (sp', ops') = swap (sp, ops)
+        swap (sp, ops)
+--            | canSb sp && canSa sp = ssRec (sp, ops)
+--            | canSb sp             = sbRec (sp, ops)
+            | canSa sp             = saRec (sp, ops)
+            | otherwise            = (sp, ops)
+        canSb sp = length (stackB sp) > 1 && (topB sp < (stackB sp !! 1))
+        canSa sp = length (stackA sp) > 1 && (topA sp > (stackA sp !! 1))
 
-psPartitionIterRev :: Int -> Int -> Int -> (StackPair,  [[Char]]) -> (StackPair, [[Char]])
+psPartitionIterRev :: Int -> Int -> Int -> (StackPair,  [String]) -> (StackPair, [String])
 psPartitionIterRev 0 p pp (sp, ops) = (sp, ops)
 psPartitionIterRev c p pp (sp, ops)
     | topB sp == pp = (psPartitionIterRev (c - 1) p pp . rbRec) (sp, ops)
@@ -169,7 +182,7 @@ psPartitionIterRev c p pp (sp, ops)
 makeStackPair' :: [Int] -> [Int] -> StackPair
 makeStackPair' l r = StackPair (r, reverse l)
 
-solve :: StackPair -> Maybe (StackPair, [[Char]])
+solve :: StackPair -> Maybe (StackPair, [String])
 solve sp
     | valid (stackA sp') = Just (sp', reverse ops)
     | otherwise = Nothing
