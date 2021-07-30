@@ -97,10 +97,11 @@ psPartition m (sp, ops)
     | c == 0    = (next . goback)                 (sp', ops')
     | otherwise = (next . goback . psPartition c) (sp', ops')
     where
-        (sp', c, ops')  = psPartitionIter    0           p (sp, ops)
-        goback          = psPartitionIterRev (m - c) (topB sp') p
+        (sp', c, ops')  = psPartitionIter    0       p    (sp, ops)
+        goback          = psPartitionIterRev (m - c) p' p
         next            = psPartition (m - c - 1)
         p               = medianOfMedians (stackA sp)
+        p'              = medianOfMedians $ take (m - c) (stackB sp')
 
 median5 :: [Int] -> Int
 median5 as
