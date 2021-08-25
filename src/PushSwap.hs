@@ -129,7 +129,7 @@ spPartitionRight :: Int -> Int -> (StackPair, [String]) -> (StackPair, [String])
 spPartitionRight 0 _ s = s
 spPartitionRight n pivot (sp, ops)
   | topA sp <= pivot = spPartitionRight (n - 1) pivot $ rbRec $ pbRec (sp, ops)
-  | otherwise        = spPartitionRight (n - 1) pivot $ raRec (sp, ops)
+  | otherwise        = spPartitionRight (n - 1) pivot $         pbRec (sp, ops)
 
 spPartitionLeft :: Int -> Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
 spPartitionLeft 0 m _ s = (s, m)
@@ -150,9 +150,9 @@ spPartitionIterLeft (sp, ops)
 
 {-
 >>> spPartitionRight 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-([2,0,4,3,1] [5,7,6,8,9],["ra","ra","rb","pb","rb","pb","ra","rb","pb","rb","pb","ra","rb","pb","ra"])
+([2,0,4,3,1,5,7,6,8,9] [],["pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
 >>> spPartitionRight 5 2 (makeStackPair' [] [2,0,4,3,1,5,7,6,8,9], [])
-([1,0,2] [5,7,6,8,9,4,3],["rb","pb","ra","ra","rb","pb","rb","pb"])
+([1,0,2,4,3] [5,7,6,8,9],["rb","pb","pb","pb","rb","pb","rb","pb"])
 >>> spPartitionLeft 5 0 2 (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
 (([2,0,1] [4,3,5,7,6,8,9],["rb","rb","pa","pa","rb"]),2)
 >>> spPartitionLeft 3 0 1 (makeStackPair' [2,0,1] [4,3,5,7,6,8,9], [])
@@ -162,9 +162,7 @@ spPartitionIterLeft (sp, ops)
 >>> spPartitionIterLeft (makeStackPair' [0] [1,2,4,3,5,7,6,8,9], [])
 ([] [1,2,4,3,5,7,6,8,9,0],["ra","pa"])
 
->>> spPartitionIterLeft (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
 >>> spPartitionIterLeft (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
-([] [5,1,7,3,4,6,0,2,8,9],[])
 ([3,4,2,1] [5,7,6,8,9,0],["rb","pb","rb","pb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","rb","pa","rb","rb","rb","rb","pa","pa","rb"])
 >>> spPartitionIterLeft (makeStackPair' [3,4,2,1] [5,7,6,8,9,0], [])
 ([4,3,2] [5,7,6,8,9,0,1],["rb","pb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","pa","pa","rb","rb"])
@@ -174,6 +172,17 @@ spPartitionIterLeft (sp, ops)
 ([4] [5,7,6,8,9,0,1,2,3],["rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb"])
 >>> spPartitionIterLeft (makeStackPair' [4] [5,7,6,8,9,0,1,2,3], [])
 ([] [5,7,6,8,9,0,1,2,3,4],["ra","pa"])
+>>> spPartitionRight 5 7 (makeStackPair' [] [5,7,6,8,9,0,1,2,3,4], [])
+([6,7,5,8,9] [0,1,2,3,4],["pb","pb","rb","pb","rb","pb","rb","pb"])
+-}
+
+leftLoop :: (StackPair, [String]) -> (StackPair, [String])
+leftLoop (StackPair (as, []), ops) = (StackPair (as, []), ops)
+leftLoop (sp, ops) = leftLoop $ spPartitionIterLeft (sp, ops)
+
+{-
+>>> leftLoop (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
+([] [5,7,6,8,9,0,1,2,3,4],["ra","pa","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","rb","rb","pa","rb","rb","rb","pb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","pa","pa","rb","rb","rb","pb","rb","pb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","rb","pa","rb","rb","rb","rb","pa","pa","rb"])
 >>> spPartitionRight 5 7 (makeStackPair' [] [5,7,6,8,9,0,1,2,3,4], [])
 ([6,7,5] [0,1,2,3,4,8,9],["ra","ra","rb","pb","rb","pb","rb","pb"])
 -}
