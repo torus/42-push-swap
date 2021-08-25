@@ -123,28 +123,26 @@ solve = undefined
 Just ([] [0,1,2,3,4,5,6,7,8,9],["ra","pb","ra","pb","pb","ra","pb","pb","ra","ra","pb","pb","pb","ra","ra","pb","ra","pb","rb","rb","pa","rb","pa","pb","ra","pb","rb","rb","pa","pa","rb","pa","ra","pa","pb","pb","ra","ra","pb","ra","pb","rb","rb","pa","rb","pb","rb","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa"])
 -}
 
-partitionRight :: Int -> (StackPair, [String]) -> (StackPair, [String])
-partitionRight pivot (StackPair (as, bs), ops)
-    | null as = (StackPair (as, bs), ops)
-    | otherwise = partitionRightIter pivot 0 (StackPair (as, bs), ops)
+----------
 
-partitionRightIter :: Int -> Int -> (StackPair, [String]) -> (StackPair, [String])
-partitionRightIter pivot count (StackPair (as, bs), ops)
-    | count == length as = partitionRight (head as) (StackPair (as, bs), ops)
-    | head as > pivot = partitionRightIter pivot (count + 1) $ raRec (StackPair (as, bs), ops)
-    | otherwise = partitionRightIter pivot count $ rbRec $ pbRec (StackPair (as, bs), ops)
+spPartitionRight :: Int -> Int -> (StackPair, [String]) -> (StackPair, [String])
+spPartitionRight 0 _ s = s
+spPartitionRight n pivot (sp, ops)
+  | topA sp <= pivot = spPartitionRight (n - 1) pivot $ rbRec $ pbRec (sp, ops)
+  | otherwise        = spPartitionRight (n - 1) pivot $ raRec (sp, ops)
 
-partitionLeftIter :: Int -> Int -> (StackPair, [String]) -> (StackPair, [String])
-partitionLeftIter pivot count (StackPair (as, bs), ops)
-    | count == 0 = (StackPair (as, bs), ops)
-    | head bs > pivot = partitionLeftIter pivot (count - 1) $ raRec $ paRec (StackPair (as, bs), ops)
-    | otherwise = partitionLeftIter pivot (count - 1) $ rbRec (StackPair (as, bs), ops)
+spPartitionLeft :: Int -> Int -> (StackPair, [String]) -> (StackPair, [String])
+spPartitionLeft 0 _ s = s
+spPartitionLeft n pivot (StackPair (as, []), ops) = (StackPair (as, []), ops)
+spPartitionLeft n pivot (sp, ops)
+  | topB sp <= pivot = spPartitionLeft (n - 1) pivot $ rbRec         (sp, ops)
+  | otherwise        = spPartitionLeft (n - 1) pivot $         paRec (sp, ops)
 
 {-
->>> partitionRight 5 ((makeStackPair' [] [5,1,7,3,4,6,0,2,8,9]), [])
-([9,8,6,7,2,0,4,3,1,5] [],["rb","pb","ra","rb","pb","ra","ra","rb","pb","rb","pb","ra","ra","rb","pb","rb","pb","ra","rb","pb","rb","pb","ra","rb","pb","rb","pb"])
->>> partitionLeftIter 3 6 ((makeStackPair' [9,8,6,7,2,0,4,3,1,5] []), [])
-([2,0,3,1,9,8,6,7] [5,4],["rb","rb","ra","pa","rb","rb","ra","pa"])
->>> partitionLeftIter 7 4 ((makeStackPair' [2,0,3,1,9,8,6,7] [5,4]), [])
-([6,7,2,0,3,1] [5,4,8,9],["ra","pa","ra","pa","rb","rb"])
+>>> spPartitionRight 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
+([2,0,4,3,1] [5,7,6,8,9],["ra","ra","rb","pb","rb","pb","ra","rb","pb","rb","pb","ra","rb","pb","ra"])
+>>> spPartitionRight 5 2 (makeStackPair' [] [2,0,4,3,1,5,7,6,8,9], [])
+([1,0,2] [5,7,6,8,9,4,3],["rb","pb","ra","ra","rb","pb","rb","pb"])
+>>> spPartitionLeft 5 2 (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
+([2,0,1] [4,3,5,7,6,8,9],["rb","rb","pa","pa","rb"])
 -}
