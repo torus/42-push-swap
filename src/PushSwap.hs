@@ -113,23 +113,18 @@ split5 as
     | length as > 5 = take 5 as : split5 (drop 5 as)
     | otherwise     = [as]
 
----------
-
-solve :: StackPair -> Maybe (StackPair, [String])
-solve = undefined
-
-{-
->>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
-Just ([] [0,1,2,3,4,5,6,7,8,9],["ra","pb","ra","pb","pb","ra","pb","pb","ra","ra","pb","pb","pb","ra","ra","pb","ra","pb","rb","rb","pa","rb","pa","pb","ra","pb","rb","rb","pa","pa","rb","pa","ra","pa","pb","pb","ra","ra","pb","ra","pb","rb","rb","pa","rb","pb","rb","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa"])
--}
-
 ----------
 
-spPartitionRight :: Int -> Int -> (StackPair, [String]) -> (StackPair, [String])
-spPartitionRight 0 _ s = s
-spPartitionRight n pivot (sp, ops)
-  | topA sp <= pivot = spPartitionRight (n - 1) pivot $ rbRec $ pbRec (sp, ops)
-  | otherwise        = spPartitionRight (n - 1) pivot $         pbRec (sp, ops)
+spPartitionRight :: Int -> Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
+spPartitionRight 0 m _ s = (s, m)
+spPartitionRight n m pivot (sp, ops)
+  | topA sp <= pivot = spPartitionRight (n - 1) m       pivot $ rbRec $ pbRec (sp, ops)
+  | otherwise        = spPartitionRight (n - 1) (m + 1) pivot $         pbRec (sp, ops)
+
+spPartitionRight' :: Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
+spPartitionRight' n pivot (sp, ops) = (recRepeatOp "pa" m pa (sp', ops'), m)
+  where
+      ((sp', ops'), m) = spPartitionRight n 0 pivot (sp, ops)
 
 spPartitionLeft :: Int -> Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
 spPartitionLeft 0 m _ s = (s, m)
@@ -142,17 +137,17 @@ spPartitionIterLeft :: (StackPair, [String]) -> (StackPair, [String])
 spPartitionIterLeft (StackPair (as, []), ops) = (StackPair (as, []), ops)
 spPartitionIterLeft (StackPair (as, [b]), ops) = raRec $ paRec (StackPair (as, [b]), ops)
 spPartitionIterLeft (sp, ops)
-  = spPartitionRight m (medianOfMedians $ take m $ stackA sp)
+  = fst $ spPartitionRight' m (medianOfMedians $ take m $ stackA sp)
     $ spPartitionIterLeft (sp', ops')
     where
         ((sp', ops'), m)
             = spPartitionLeft (length (stackA sp)) 0 (medianOfMedians $ stackB sp) (sp, ops)
 
 {-
->>> spPartitionRight 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-([2,0,4,3,1,5,7,6,8,9] [],["pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
->>> spPartitionRight 5 2 (makeStackPair' [] [2,0,4,3,1,5,7,6,8,9], [])
-([1,0,2,4,3] [5,7,6,8,9],["rb","pb","pb","pb","rb","pb","rb","pb"])
+>>> spPartitionRight' 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
+(([2,0,4,3,1] [5,7,6,8,9],["pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
+>>> spPartitionRight' 5 2 (makeStackPair' [] [2,0,4,3,1,5,7,6,8,9], [])
+(([1,0,2] [4,3,5,7,6,8,9],["pa","pa","rb","pb","pb","pb","rb","pb","rb","pb"]),2)
 >>> spPartitionLeft 5 0 2 (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
 (([2,0,1] [4,3,5,7,6,8,9],["rb","rb","pa","pa","rb"]),2)
 >>> spPartitionLeft 3 0 1 (makeStackPair' [2,0,1] [4,3,5,7,6,8,9], [])
@@ -172,17 +167,51 @@ spPartitionIterLeft (sp, ops)
 ([4] [5,7,6,8,9,0,1,2,3],["rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb"])
 >>> spPartitionIterLeft (makeStackPair' [4] [5,7,6,8,9,0,1,2,3], [])
 ([] [5,7,6,8,9,0,1,2,3,4],["ra","pa"])
->>> spPartitionRight 5 7 (makeStackPair' [] [5,7,6,8,9,0,1,2,3,4], [])
-([6,7,5,8,9] [0,1,2,3,4],["pb","pb","rb","pb","rb","pb","rb","pb"])
+>>> spPartitionRight' 5 7 (makeStackPair' [] [5,7,6,8,9,0,1,2,3,4], [])
+(([6,7,5] [8,9,0,1,2,3,4],["pa","pa","pb","pb","rb","pb","rb","pb","rb","pb"]),2)
 -}
 
 leftLoop :: (StackPair, [String]) -> (StackPair, [String])
 leftLoop (StackPair (as, []), ops) = (StackPair (as, []), ops)
 leftLoop (sp, ops) = leftLoop $ spPartitionIterLeft (sp, ops)
 
+outerLoop :: Int -> (StackPair, [String]) -> (StackPair, [String])
+outerLoop 0 sp = sp
+outerLoop m (StackPair (as, bs), ops)
+  = outerLoop m' (sp'', ops'')
+    where
+      ((sp', ops'), m') = spPartitionRight' m (medianOfMedians $ take m as) (StackPair (as, bs), ops)
+      (sp'', ops'') = leftLoop (sp', ops')
+
 {-
+>>> spPartitionRight' 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
+(([2,0,4,3,1] [5,7,6,8,9],["pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
 >>> leftLoop (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
 ([] [5,7,6,8,9,0,1,2,3,4],["ra","pa","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","rb","rb","pa","rb","rb","rb","pb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","pa","pa","rb","rb","rb","pb","rb","pb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","rb","pa","rb","rb","rb","rb","pa","pa","rb"])
->>> spPartitionRight 5 7 (makeStackPair' [] [5,7,6,8,9,0,1,2,3,4], [])
-([6,7,5] [0,1,2,3,4,8,9],["ra","ra","rb","pb","rb","pb","rb","pb"])
+>>> spPartitionRight' 5 7 (makeStackPair' [] [5,7,6,8,9,0,1,2,3,4], [])
+(([6,7,5] [8,9,0,1,2,3,4],["pa","pa","pb","pb","rb","pb","rb","pb","rb","pb"]),2)
+>>> leftLoop (makeStackPair' [6,7,5] [8,9,0,1,2,3,4], [])
+([] [8,9,0,1,2,3,4,5,6,7],["ra","pa","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","rb","rb","rb","pa","rb"])
+>>> spPartitionRight' 2 8 (makeStackPair' [] [8,9,0,1,2,3,4,5,6,7], [])
+(([8] [9,0,1,2,3,4,5,6,7],["pa","pb","rb","pb"]),1)
+>>> leftLoop (makeStackPair' [8] [9,0,1,2,3,4,5,6,7], [])
+([] [9,0,1,2,3,4,5,6,7,8],["ra","pa"])
+>>> spPartitionRight' 1 9 (makeStackPair' [] [9,0,1,2,3,4,5,6,7,8], [])
+(([9] [0,1,2,3,4,5,6,7,8],["rb","pb"]),0)
+>>> leftLoop (makeStackPair' [9] [0,1,2,3,4,5,6,7,8], [])
+([] [0,1,2,3,4,5,6,7,8,9],["ra","pa"])
+>>> outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
+([] [0,1,2,3,4,5,6,7,8,9],["ra","pa","rb","pb","ra","pa","pa","pb","rb","pb","ra","pa","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","rb","rb","rb","pa","rb","pa","pa","pb","pb","rb","pb","rb","pb","rb","pb","ra","pa","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","rb","rb","pa","rb","rb","rb","pb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","pa","pa","rb","rb","rb","pb","rb","pb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","rb","pa","rb","rb","rb","rb","pa","pa","rb","pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
+-}
+
+---------
+
+solve :: StackPair -> Maybe (StackPair, [String])
+solve sp = Just (sp', reverse ops')
+  where
+    (sp', ops') = outerLoop (length $ stackA sp) (sp, [])
+
+{-
+>>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
+Just ([] [0,1,2,3,4,5,6,7,8,9],["ra","pa","rb","pb","ra","pa","pa","pb","rb","pb","ra","pa","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","rb","rb","rb","pa","rb","pa","pa","pb","pb","rb","pb","rb","pb","rb","pb","ra","pa","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","rb","rb","pa","rb","rb","rb","pb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","pa","pa","rb","rb","rb","pb","rb","pb","rb","pb","rb","pb","ra","pa","rb","rb","rb","rb","rb","rb","rb","pa","rb","rb","rb","rb","pa","rb","rb","rb","rb","pa","pa","rb","pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
 -}
