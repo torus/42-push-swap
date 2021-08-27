@@ -86,8 +86,18 @@ topA sp = head (stackA sp)
 topB sp = head (stackB sp)
 
 raRec, rbRec, paRec, pbRec, saRec, sbRec, ssRec :: (StackPair, [String]) -> (StackPair, [String])
+{-
 rbRec = recOp "rb" rb
 raRec = recOp "ra" ra
+-}
+rbRec (StackPair (as, []), ops) = (StackPair (as, []), ops)
+rbRec (StackPair (as, [b]), ops) = (StackPair (as, [b]), ops)
+rbRec x = recOp "rb" rb x
+
+raRec (StackPair ([], bs), ops) = (StackPair ([], bs), ops)
+raRec (StackPair ([a], bs), ops) = (StackPair ([a], bs), ops)
+raRec x = recOp "ra" ra x
+
 paRec = recOp "pa" pa
 pbRec = recOp "pb" pb
 saRec = recOp "sa" sa
@@ -149,7 +159,7 @@ spPartitionIterLeft (sp, ops)
 >>> spPartitionRight' 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
 (([2,0,4,3,1] [5,7,6,8,9],["pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
 >>> spPartitionRight' 5 2 (makeStackPair' [] [2,0,4,3,1,5,7,6,8,9], [])
-(([1,0,2] [4,3,5,7,6,8,9],["pa","pa","rb","pb","pb","pb","rb","pb","rb","pb"]),2)
+(([1,0,2] [4,3,5,7,6,8,9],["pa","pa","rb","pb","pb","pb","rb","pb","pb"]),2)
 >>> spPartitionLeft 5 0 2 (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
 (([1,2,0] [4,3,5,7,6,8,9],["pa","pa","rb"]),2)
 >>> spPartitionLeft 3 0 1 (makeStackPair' [2,0,1] [4,3,5,7,6,8,9], [])
@@ -170,7 +180,7 @@ spPartitionIterLeft (sp, ops)
 >>> spPartitionIterLeft (makeStackPair' [4] [5,7,6,8,9,0,1,2,3], [])
 ([] [5,7,6,8,9,0,1,2,3,4],["ra","pa"])
 >>> spPartitionRight' 5 7 (makeStackPair' [] [5,7,6,8,9,0,1,2,3,4], [])
-(([6,7,5] [8,9,0,1,2,3,4],["pa","pa","pb","pb","rb","pb","rb","pb","rb","pb"]),2)
+(([6,7,5] [8,9,0,1,2,3,4],["pa","pa","pb","pb","rb","pb","rb","pb","pb"]),2)
 -}
 
 leftLoop :: (StackPair, [String]) -> (StackPair, [String])
@@ -189,25 +199,25 @@ outerLoop m (StackPair (as, bs), ops)
 >>> spPartitionRight' 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
 (([2,0,4,3,1] [5,7,6,8,9],["pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
 >>> leftLoop (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
-([] [5,7,6,8,9,0,1,2,3,4],["ra","pa","ra","pa","ra","pa","rb","pb","rb","pb","rb","pb","ra","pa","pa","pa","pa","rb","rb","rb","pb","rb","pb","ra","pa","pa","pa","rb"])
+([] [5,7,6,8,9,0,1,2,3,4],["ra","pa","ra","pa","ra","pa","rb","pb","rb","pb","pb","ra","pa","pa","pa","pa","rb","rb","rb","pb","rb","pb","ra","pa","pa","pa","rb"])
 >>> spPartitionRight' 5 7 (makeStackPair' [] [5,7,6,8,9,0,1,2,3,4], [])
-(([6,7,5] [8,9,0,1,2,3,4],["pa","pa","pb","pb","rb","pb","rb","pb","rb","pb"]),2)
+(([6,7,5] [8,9,0,1,2,3,4],["pa","pa","pb","pb","rb","pb","rb","pb","pb"]),2)
 >>> leftLoop (makeStackPair' [6,7,5] [8,9,0,1,2,3,4], [])
-([] [8,9,0,1,2,3,4,5,6,7],["ra","pa","rb","pb","ra","pa","pa","ra","pa"])
+([] [8,9,0,1,2,3,4,5,6,7],["ra","pa","pb","ra","pa","pa","ra","pa"])
 >>> spPartitionRight' 2 8 (makeStackPair' [] [8,9,0,1,2,3,4,5,6,7], [])
-(([8] [9,0,1,2,3,4,5,6,7],["pa","pb","rb","pb"]),1)
+(([8] [9,0,1,2,3,4,5,6,7],["pa","pb","pb"]),1)
 >>> leftLoop (makeStackPair' [8] [9,0,1,2,3,4,5,6,7], [])
 ([] [9,0,1,2,3,4,5,6,7,8],["ra","pa"])
 >>> spPartitionRight' 1 9 (makeStackPair' [] [9,0,1,2,3,4,5,6,7,8], [])
-(([9] [0,1,2,3,4,5,6,7,8],["rb","pb"]),0)
+(([9] [0,1,2,3,4,5,6,7,8],["pb"]),0)
 >>> leftLoop (makeStackPair' [9] [0,1,2,3,4,5,6,7,8], [])
 ([] [0,1,2,3,4,5,6,7,8,9],["ra","pa"])
 >>> outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-([] [0,1,2,3,4,5,6,7,8,9],["ra","pa","rb","pb","ra","pa","pa","pb","rb","pb","ra","pa","rb","pb","ra","pa","pa","ra","pa","pa","pa","pb","pb","rb","pb","rb","pb","rb","pb","ra","pa","ra","pa","ra","pa","rb","pb","rb","pb","rb","pb","ra","pa","pa","pa","pa","rb","rb","rb","pb","rb","pb","ra","pa","pa","pa","rb","pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
+([] [0,1,2,3,4,5,6,7,8,9],["ra","pa","pb","ra","pa","pa","pb","pb","ra","pa","pb","ra","pa","pa","ra","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","ra","pa","ra","pa","ra","pa","rb","pb","rb","pb","pb","ra","pa","pa","pa","pa","rb","rb","rb","pb","rb","pb","ra","pa","pa","pa","rb","pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
 >>> length $ snd $ outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-77
+72
 >>> length $ spCompact [] $ snd $ outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-67
+56
 -}
 
 ---------
@@ -228,5 +238,5 @@ solve sp = Just (sp', spCompact [] ops')
 
 {-
 >>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
-Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pa","pa","pa","rb","pa","pa","rb","pa","pa","pa","ra","pb","rb","pb","rb","pb","rb","pb","rb","rb","rb","pa","pa","rb","pa","pa","ra","pb","rb","pb","rb","pb","rb","rb","rb","pa","rb","pa","pa","ra","pb","rb","pb","rb","rb","pa","pa","ra","pb","rb","pa","ra","pb","rb","pb","rb","pb","rb","rb","pa","pa","pa","ra","pb","rb","pb","rb","rb","pa","pa","ra","pb","rb","pa","ra","pb","rb","pa","ra","pb","rb","pa","ra"])
+Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pa","pa","pa","rb","pa","pa","pa","ra","pb","rb","pb","rb","rb","rb","pa","pa","pa","pa","ra","pb","pb","rb","pb","rb","pa","ra","pa","ra","pa","ra","pb","pb","rb","pb","rb","pa","ra","pa","pa","ra","ra","ra","ra"])
 -}
