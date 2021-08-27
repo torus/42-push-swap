@@ -137,7 +137,26 @@ spPartitionRight' n pivot s@(sp, ops) = (sweepLeft m (sp', ops'), m)
       ((sp', ops'), m) = spPartitionRight n 0 pivot s
 
 sweepLeft :: Int -> (StackPair, [String]) -> (StackPair, [String])
-sweepLeft m (sp, ops) = recRepeatOp "pa" m pa (sp, ops)
+--sweepLeft m (sp, ops) = recRepeatOp "pa" m pa (sp, ops)
+sweepLeft 0 s = s
+{-
+sweepLeft m s@(StackPair (a1 : a2 : as, b1 : b2 : bs), ops)
+  | b2 > b1 && a1 > a2 = sweepLeft (m - 1) $ paRec $ ssRec s
+  | b2 > b1            = sweepLeft (m - 1) $ paRec $ sbRec s
+  |            a1 > a2 = sweepLeft (m - 1) $ paRec $ saRec s
+  | otherwise          = sweepLeft (m - 1) $ paRec         s
+-}
+sweepLeft m s@(StackPair (as, b1 : b2 : bs), ops)
+  | b2 > b1            = sweepLeft (m - 1) $ paRec $ sbRec s
+  | otherwise          = sweepLeft (m - 1) $ paRec         s
+{-
+sweepLeft m s@(StackPair (a1 : a2 : as, bs), ops)
+  |            a1 > a2 = sweepLeft (m - 1) $ paRec $ saRec s
+  | otherwise          = sweepLeft (m - 1) $ paRec         s
+-}
+sweepLeft m s
+                       = sweepLeft (m - 1) $ paRec         s
+-- ...bs b2 b1 a1 a2 as...
 
 spPartitionLeft :: Int -> Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
 spPartitionLeft 0 m _ s = (s, m)
@@ -160,9 +179,9 @@ spPartitionIterLeft s@(sp, ops)
 
 {-
 >>> spPartitionRight' 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-(([2,0,4,3,1] [5,7,6,8,9],["pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
+(([2,0,4,3,1] [5,6,7,8,9],["pa","pa","pa","sb","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
 >>> spPartitionRight' 5 2 (makeStackPair' [] [2,0,4,3,1,5,7,6,8,9], [])
-(([1,0,2] [4,3,5,7,6,8,9],["pa","pa","rb","pb","pb","pb","rb","pb","pb"]),2)
+(([1,0,2] [3,4,5,7,6,8,9],["pa","pa","sb","rb","pb","pb","pb","rb","pb","pb"]),2)
 >>> spPartitionLeft 5 0 2 (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
 (([1,2,0] [4,3,5,7,6,8,9],["pa","pa","rb"]),2)
 >>> spPartitionLeft 3 0 1 (makeStackPair' [2,0,1] [4,3,5,7,6,8,9], [])
@@ -208,7 +227,7 @@ sweepRight m s@(StackPair (a : as, bs), ops)
 
 {-
 >>> spPartitionRight' 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-(([2,0,4,3,1] [5,7,6,8,9],["pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
+(([2,0,4,3,1] [5,6,7,8,9],["pa","pa","pa","sb","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
 >>> leftLoop (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
 ([] [5,7,6,8,9,0,1,2,3,4],["ra","pa","ra","pa","ra","pa","rb","pb","rb","pb","pb","ra","pa","pa","pa","pa","rb","rb","rb","pb","rb","pb","ra","pa","pa","pa","rb"])
 >>> sweepRight 5 (makeStackPair' [] [5,7,6,8,9,0,1,2,3,4], [])
@@ -221,11 +240,11 @@ sweepRight m s@(StackPair (a : as, bs), ops)
 >>> sweepRight 1 (makeStackPair' [] [9,0,1,2,3,4,5,6,7,8], [])
 (([] [0,1,2,3,4,5,6,7,8,9],["ra"]),0)
 >>> outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-([] [0,1,2,3,4,5,6,7,8,9],["ra","ra","ra","pa","pb","ra","pa","pa","pa","pa","pb","pb","rb","pb","pb","ra","ra","pa","ra","pa","ra","pa","rb","pb","rb","pb","pb","ra","pa","pa","pa","pa","rb","rb","rb","pb","rb","pb","ra","pa","pa","pa","rb","pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
+([] [0,1,2,3,4,5,6,7,8,9],["ra","ra","ra","ra","ra","ra","pa","ra","pa","ra","pa","rb","pb","rb","pb","pb","ra","pa","pa","pa","pa","rb","rb","rb","pb","rb","pb","ra","pa","pa","pa","rb","pa","pa","pa","sb","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
 >>> length $ snd $ outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-63
->>> length $ spCompact [] $ snd $ outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
 53
+>>> length $ spCompact [] $ snd $ outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
+49
 -}
 
 ---------
@@ -246,5 +265,5 @@ solve sp = Just (sp', spCompact [] ops')
 
 {-
 >>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
-Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pa","pa","pa","rb","pa","pa","pa","ra","pb","rb","pb","rb","rb","rb","pa","pa","pa","pa","ra","pb","pb","rb","pb","rb","pa","ra","pa","ra","pa","ra","ra","pb","pb","rb","pa","pa","ra","ra","ra","ra"])
+Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","sb","pa","pa","pa","rb","pa","pa","pa","ra","pb","rb","pb","rb","rb","rb","pa","pa","pa","pa","ra","pb","pb","rb","pb","rb","pa","ra","pa","ra","pa","ra","ra","ra","ra","ra","ra"])
 -}
