@@ -132,31 +132,31 @@ spPartitionRight n m pivot (sp, ops)
   | otherwise        = spPartitionRight (n - 1) (m + 1) pivot $         pbRec (sp, ops)
 
 spPartitionRight' :: Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
-spPartitionRight' n pivot (sp, ops) = (sweepLeft m (sp', ops'), m)
+spPartitionRight' n pivot s@(sp, ops) = (sweepLeft m (sp', ops'), m)
   where
-      ((sp', ops'), m) = spPartitionRight n 0 pivot (sp, ops)
+      ((sp', ops'), m) = spPartitionRight n 0 pivot s
 
 sweepLeft :: Int -> (StackPair, [String]) -> (StackPair, [String])
 sweepLeft m (sp, ops) = recRepeatOp "pa" m pa (sp, ops)
 
 spPartitionLeft :: Int -> Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
 spPartitionLeft 0 m _ s = (s, m)
-spPartitionLeft n m pivot (StackPair (as, []), ops) = ((StackPair (as, []), ops), m)
-spPartitionLeft n m pivot (sp, ops)
-  | all (<= pivot) (stackB sp) = ((sp, ops), m)
-  | topB sp <= pivot = spPartitionLeft (n - 1) m       pivot $ rbRec (sp, ops)
-  | otherwise        = spPartitionLeft (n - 1) (m + 1) pivot $ paRec (sp, ops)
+spPartitionLeft n m pivot s@(StackPair (as, []), ops) = (s, m)
+spPartitionLeft n m pivot s@(sp, ops)
+  | all (<= pivot) (stackB sp) = (s, m)
+  | topB sp <= pivot = spPartitionLeft (n - 1) m       pivot $ rbRec s
+  | otherwise        = spPartitionLeft (n - 1) (m + 1) pivot $ paRec s
 
 spPartitionIterLeft :: (StackPair, [String]) -> (StackPair, [String])
-spPartitionIterLeft (StackPair (as, []), ops) = (StackPair (as, []), ops)
-spPartitionIterLeft (StackPair (as, [b]), ops) = raRec $ paRec (StackPair (as, [b]), ops)
-spPartitionIterLeft (sp, ops)
- | all (> topB sp) (tail $ stackB sp) = raRec $ paRec (sp, ops)
+spPartitionIterLeft s@(StackPair (as, []), ops) = s
+spPartitionIterLeft s@(StackPair (as, [b]), ops) = raRec $ paRec s
+spPartitionIterLeft s@(sp, ops)
+ | all (> topB sp) (tail $ stackB sp) = raRec $ paRec s
  | otherwise  = fst $ spPartitionRight' m (medianOfMedians $ take m $ stackA sp)
-    $ spPartitionIterLeft (sp', ops')
+    $ spPartitionIterLeft s'
     where
-        ((sp', ops'), m)
-            = spPartitionLeft (length (stackA sp)) 0 (medianOfMedians $ stackB sp) (sp, ops)
+        (s'@(sp', ops'), m)
+            = spPartitionLeft (length (stackA sp)) 0 (medianOfMedians $ stackB sp) s
 
 {-
 >>> spPartitionRight' 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
@@ -187,24 +187,24 @@ spPartitionIterLeft (sp, ops)
 -}
 
 leftLoop :: (StackPair, [String]) -> (StackPair, [String])
-leftLoop (StackPair (as, []), ops) = (StackPair (as, []), ops)
-leftLoop (sp, ops) = leftLoop $ spPartitionIterLeft (sp, ops)
+leftLoop s@(StackPair (as, []), ops) = s
+leftLoop s = leftLoop $ spPartitionIterLeft s
 
 outerLoop :: Int -> (StackPair, [String]) -> (StackPair, [String])
 outerLoop 0 sp = sp
-outerLoop m (StackPair (as, bs), ops)
-  = outerLoop m'' (sp''', ops''')
+outerLoop m s@(StackPair (as, bs), ops)
+  = outerLoop m'' s'''
     where
-      ((sp', ops'), m') = spPartitionRight' m (medianOfMedians $ take m as) (StackPair (as, bs), ops)
-      (sp'', ops'') = leftLoop (sp', ops')
-      ((sp''', ops'''), m'') = sweepRight m' (sp'', ops'')
+      (s'@(sp', ops'), m')        = spPartitionRight' m (medianOfMedians $ take m as) s
+      s''@(sp'', ops'')           = leftLoop s'
+      (s'''@(sp''', ops'''), m'') = sweepRight m' s''
 
 sweepRight :: Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
 sweepRight 0 s = (s, 0)
 sweepRight m (StackPair ([], bs), ops) = undefined
-sweepRight m (StackPair (a : as, bs), ops)
-  | all (> a) (take (m - 1) as) = sweepRight (m - 1) $ raRec (StackPair (a : as, bs), ops)
-  | otherwise    = ((StackPair (a : as, bs), ops), m)
+sweepRight m s@(StackPair (a : as, bs), ops)
+  | all (> a) (take (m - 1) as) = sweepRight (m - 1) $ raRec s
+  | otherwise    = (s, m)
 
 {-
 >>> spPartitionRight' 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
