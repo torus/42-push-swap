@@ -128,10 +128,13 @@ split5 as
 spPartitionRight :: Int -> Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
 spPartitionRight 0 m _ s = (s, m)
 spPartitionRight n m pivot (sp, ops)
-  | all (> topA sp) (stackB sp) && all (> topA sp) (tail $ take n (stackA sp))
-                     = spPartitionRight (n - 1) m       pivot $ raRec         (sp, ops)
-  | topA sp <= pivot = spPartitionRight (n - 1) m       pivot $ rbRec $ pbRec (sp, ops)
-  | otherwise        = spPartitionRight (n - 1) (m + 1) pivot $         pbRec (sp, ops)
+  = spPartitionRight (n - 1) m' pivot $ recOps (sp, ops)
+  where
+    (m', recOps)
+      | all (> topA sp) (stackB sp) && all (> topA sp) (tail $ take n (stackA sp))
+                         = (m, raRec)
+      | topA sp <= pivot = (m, rbRec . pbRec)
+      | otherwise        = (m + 1, pbRec)
 
 spPartitionRight' :: Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
 spPartitionRight' n pivot s@(sp, ops) = (sweepLeft m (sp', ops'), m)
@@ -180,6 +183,13 @@ spPartitionIterLeft s@(sp, ops)
             = spPartitionLeft (length (stackA sp)) 0 (medianOfMedians $ stackB sp) s
 
 {-
+>>> spPartitionRight' 10 4 (makeStackPair' [] [0,1,2,3,4,6,5,7,8,9], [])
+(([] [6,7,8,9,0,1,2,3,4,5],["pa","pa","pa","pa","pb","pb","pb","ra","pb","ra","ra","ra","ra","ra"]),4)
+>>> spPartitionIterLeft (makeStackPair' [] [6,7,8,9,0,1,2,3,4,5], [])
+([] [6,7,8,9,0,1,2,3,4,5],[])
+>>> spPartitionRight' 4 7 (makeStackPair' [] [6,7,8,9,0,1,2,3,4,5], [])
+(([] [0,1,2,3,4,5,6,7,8,9],["ra","ra","ra","ra"]),0)
+
 >>> spPartitionRight' 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
 (([2,4,3,1] [5,6,7,8,9,0],["pa","pa","pa","sb","pa","pa","pb","pb","rb","pb","ra","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
 >>> spPartitionRight' 5 2 (makeStackPair' [] [2,0,4,3,1,5,7,6,8,9], [])
