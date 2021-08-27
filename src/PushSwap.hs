@@ -190,34 +190,39 @@ leftLoop (sp, ops) = leftLoop $ spPartitionIterLeft (sp, ops)
 outerLoop :: Int -> (StackPair, [String]) -> (StackPair, [String])
 outerLoop 0 sp = sp
 outerLoop m (StackPair (as, bs), ops)
-  = outerLoop m' (sp'', ops'')
+  = outerLoop m'' (sp''', ops''')
     where
       ((sp', ops'), m') = spPartitionRight' m (medianOfMedians $ take m as) (StackPair (as, bs), ops)
       (sp'', ops'') = leftLoop (sp', ops')
+      ((sp''', ops'''), m'') = sweepRight m' (sp'', ops'')
+
+sweepRight :: Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
+sweepRight 0 s = (s, 0)
+sweepRight m (StackPair ([], bs), ops) = undefined
+sweepRight m (StackPair (a : as, bs), ops)
+  | all (> a) (take (m - 1) as) = sweepRight (m - 1) $ raRec (StackPair (a : as, bs), ops)
+  | otherwise    = ((StackPair (a : as, bs), ops), m)
 
 {-
 >>> spPartitionRight' 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
 (([2,0,4,3,1] [5,7,6,8,9],["pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
 >>> leftLoop (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
 ([] [5,7,6,8,9,0,1,2,3,4],["ra","pa","ra","pa","ra","pa","rb","pb","rb","pb","pb","ra","pa","pa","pa","pa","rb","rb","rb","pb","rb","pb","ra","pa","pa","pa","rb"])
->>> spPartitionRight' 5 7 (makeStackPair' [] [5,7,6,8,9,0,1,2,3,4], [])
-(([6,7,5] [8,9,0,1,2,3,4],["pa","pa","pb","pb","rb","pb","rb","pb","pb"]),2)
->>> leftLoop (makeStackPair' [6,7,5] [8,9,0,1,2,3,4], [])
-([] [8,9,0,1,2,3,4,5,6,7],["ra","pa","pb","ra","pa","pa","ra","pa"])
->>> spPartitionRight' 2 8 (makeStackPair' [] [8,9,0,1,2,3,4,5,6,7], [])
-(([8] [9,0,1,2,3,4,5,6,7],["pa","pb","pb"]),1)
->>> leftLoop (makeStackPair' [8] [9,0,1,2,3,4,5,6,7], [])
-([] [9,0,1,2,3,4,5,6,7,8],["ra","pa"])
->>> spPartitionRight' 1 9 (makeStackPair' [] [9,0,1,2,3,4,5,6,7,8], [])
-(([9] [0,1,2,3,4,5,6,7,8],["pb"]),0)
->>> leftLoop (makeStackPair' [9] [0,1,2,3,4,5,6,7,8], [])
-([] [0,1,2,3,4,5,6,7,8,9],["ra","pa"])
+>>> sweepRight 5 (makeStackPair' [] [5,7,6,8,9,0,1,2,3,4], [])
+(([] [7,6,8,9,0,1,2,3,4,5],["ra"]),4)
+
+>>> spPartitionRight' 4 8 (makeStackPair' [] [7,6,8,9,0,1,2,3,4,5], [])
+(([8,6,7] [9,0,1,2,3,4,5],["pa","pb","rb","pb","rb","pb","pb"]),1)
+>>> leftLoop (makeStackPair' [8,6,7] [9,0,1,2,3,4,5], [])
+([] [9,0,1,2,3,4,5,6,7,8],["ra","pa","ra","pa","rb","pb","pb","ra","pa","pa","pa","rb","rb"])
+>>> sweepRight 1 (makeStackPair' [] [9,0,1,2,3,4,5,6,7,8], [])
+(([] [0,1,2,3,4,5,6,7,8,9],["ra"]),0)
 >>> outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-([] [0,1,2,3,4,5,6,7,8,9],["ra","pa","pb","ra","pa","pa","pb","pb","ra","pa","pb","ra","pa","pa","ra","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","ra","pa","ra","pa","ra","pa","rb","pb","rb","pb","pb","ra","pa","pa","pa","pa","rb","rb","rb","pb","rb","pb","ra","pa","pa","pa","rb","pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
+([] [0,1,2,3,4,5,6,7,8,9],["ra","ra","ra","pa","pb","ra","pa","pa","pa","pa","pb","pb","rb","pb","pb","ra","ra","pa","ra","pa","ra","pa","rb","pb","rb","pb","pb","ra","pa","pa","pa","pa","rb","rb","rb","pb","rb","pb","ra","pa","pa","pa","rb","pa","pa","pa","pa","pa","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
 >>> length $ snd $ outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-72
+63
 >>> length $ spCompact [] $ snd $ outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-56
+53
 -}
 
 ---------
@@ -238,5 +243,5 @@ solve sp = Just (sp', spCompact [] ops')
 
 {-
 >>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
-Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pa","pa","pa","rb","pa","pa","pa","ra","pb","rb","pb","rb","rb","rb","pa","pa","pa","pa","ra","pb","pb","rb","pb","rb","pa","ra","pa","ra","pa","ra","pb","pb","rb","pb","rb","pa","ra","pa","pa","ra","ra","ra","ra"])
+Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","rb","pb","pb","rb","pb","rb","pb","pb","rb","pb","rb","pa","pa","pa","rb","pa","pa","pa","ra","pb","rb","pb","rb","rb","rb","pa","pa","pa","pa","ra","pb","pb","rb","pb","rb","pa","ra","pa","ra","pa","ra","ra","pb","pb","rb","pa","pa","ra","ra","ra","ra"])
 -}
