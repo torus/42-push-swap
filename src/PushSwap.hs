@@ -132,9 +132,12 @@ spPartitionRight n m pivot (sp, ops)
   | otherwise        = spPartitionRight (n - 1) (m + 1) pivot $         pbRec (sp, ops)
 
 spPartitionRight' :: Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
-spPartitionRight' n pivot (sp, ops) = (recRepeatOp "pa" m pa (sp', ops'), m)
+spPartitionRight' n pivot (sp, ops) = (sweepLeft m (sp', ops'), m)
   where
       ((sp', ops'), m) = spPartitionRight n 0 pivot (sp, ops)
+
+sweepLeft :: Int -> (StackPair, [String]) -> (StackPair, [String])
+sweepLeft m (sp, ops) = recRepeatOp "pa" m pa (sp, ops)
 
 spPartitionLeft :: Int -> Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
 spPartitionLeft 0 m _ s = (s, m)
