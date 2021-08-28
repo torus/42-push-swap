@@ -6,6 +6,7 @@ import Control.Monad.ST
 import Data.Array.ST
 import Data.STRef
 import Data.Bool (otherwise)
+import GHC.Base (otherwise)
 
 newtype StackPair = StackPair ([Int], [Int]) deriving (Eq)
 
@@ -138,31 +139,28 @@ spPartitionRight n m pivot (sp, ops)
       | otherwise        = (m + 1, pbRec)
 
 spPartitionRight' :: Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
-spPartitionRight' n pivot s@(sp, ops) = (sweepLeft m (sp', ops'), m)
+spPartitionRight' n pivot s@(sp, ops)
+  = (sweepLeft m (medianOfMedians $ take m (stackB sp)) (sp', ops'), m)
   where
       ((sp', ops'), m) = spPartitionRight n 0 pivot s
 
-sweepLeft :: Int -> (StackPair, [String]) -> (StackPair, [String])
---sweepLeft m (sp, ops) = recRepeatOp "pa" m pa (sp, ops)
-sweepLeft 0 s = s
+sweepLeft :: Int -> Int -> (StackPair, [String]) -> (StackPair, [String])
+sweepLeft m pivot s = recRepeatOp "pa"  (m - pushed) pa
+                    $ recRepeatOp "rrb" (m - pushed) rrb s'
+  where
+    (s', pushed) = sweepLeft' m pivot 0 s
+
+sweepLeft' :: Int -> Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
+sweepLeft' 0 _ pushed s = (s, pushed)
+sweepLeft' m pivot pushed s@(StackPair (as, b : bs), ops)
+  | b > pivot = sweepLeft' (m - 1) pivot (pushed + 1) $ paRec s
+  | otherwise = sweepLeft' (m - 1) pivot pushed       $ rbRec s
+sweepLeft' m pivot pushed s = undefined
+
 {-
-sweepLeft m s@(StackPair (a1 : a2 : as, b1 : b2 : bs), ops)
-  | b2 > b1 && a1 > a2 = sweepLeft (m - 1) $ paRec $ ssRec s
-  | b2 > b1            = sweepLeft (m - 1) $ paRec $ sbRec s
-  |            a1 > a2 = sweepLeft (m - 1) $ paRec $ saRec s
-  | otherwise          = sweepLeft (m - 1) $ paRec         s
-sweepLeft m s@(StackPair (as, b1 : b2 : bs), ops)
-  | b2 > b1            = sweepLeft (m - 1) $ paRec $ sbRec s
-  | otherwise          = sweepLeft (m - 1) $ paRec         s
+>>> sweepLeft 6 4 (makeStackPair' [2,4,3,1,5,7,6,8,9,0] [], [])
+([2,4,3,1] [0,5,7,6,8,9],["pa","rrb","pa","pa","pa","pa","pa","rb"])
 -}
-{-
-sweepLeft m s@(StackPair (a1 : a2 : as, bs), ops)
-  |            a1 > a2 = sweepLeft (m - 1) $ paRec $ saRec s
-  | otherwise          = sweepLeft (m - 1) $ paRec         s
--}
-sweepLeft m s
-                       = sweepLeft (m - 1) $ paRec         s
--- ...bs b2 b1 a1 a2 as...
 
 spPartitionLeft :: Int -> Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
 spPartitionLeft 0 m _ s = (s, m)
