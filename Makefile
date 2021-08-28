@@ -8,6 +8,9 @@ XDISPLAY = $(XHOST):0.0
 show: $(TARGET)
 	DISPLAY=$(XDISPLAY) python3 vis/pyviz.py `./cabal/bin/shuffled 100`
 
+small: $(TARGET)
+	DISPLAY=$(XDISPLAY) python3 vis/pyviz.py `./cabal/bin/shuffled 20`
+
 build:
 	sudo docker-compose run ghc cabal build
 
