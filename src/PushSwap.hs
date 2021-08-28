@@ -153,8 +153,9 @@ sweepLeft m pivot s = recRepeatOp "pa"  (m - pushed) pa
 sweepLeft' :: Int -> Int -> Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
 sweepLeft' 0 _ pushed s = (s, pushed)
 sweepLeft' m pivot pushed s@(StackPair (as, b : bs), ops)
-  | b > pivot = sweepLeft' (m - 1) pivot (pushed + 1) $ paRec s
-  | otherwise = sweepLeft' (m - 1) pivot pushed       $ rbRec s
+  | b > pivot        = sweepLeft' (m - 1) pivot (pushed + 1) $ paRec s
+  | all (< pivot) bs = sweepLeft' 0 pivot pushed s
+  | otherwise        = sweepLeft' (m - 1) pivot pushed       $ rbRec s
 sweepLeft' m pivot pushed s = undefined
 
 {-
