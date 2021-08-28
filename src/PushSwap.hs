@@ -5,6 +5,7 @@ import Data.Lists
 import Control.Monad.ST
 import Data.Array.ST
 import Data.STRef
+import Data.Bool (otherwise)
 
 newtype StackPair = StackPair ([Int], [Int]) deriving (Eq)
 
@@ -150,10 +151,10 @@ sweepLeft m s@(StackPair (a1 : a2 : as, b1 : b2 : bs), ops)
   | b2 > b1            = sweepLeft (m - 1) $ paRec $ sbRec s
   |            a1 > a2 = sweepLeft (m - 1) $ paRec $ saRec s
   | otherwise          = sweepLeft (m - 1) $ paRec         s
--}
 sweepLeft m s@(StackPair (as, b1 : b2 : bs), ops)
   | b2 > b1            = sweepLeft (m - 1) $ paRec $ sbRec s
   | otherwise          = sweepLeft (m - 1) $ paRec         s
+-}
 {-
 sweepLeft m s@(StackPair (a1 : a2 : as, bs), ops)
   |            a1 > a2 = sweepLeft (m - 1) $ paRec $ saRec s
@@ -191,9 +192,9 @@ spPartitionIterLeft s@(sp, ops)
 (([] [0,1,2,3,4,5,6,7,8,9],["ra","ra","ra","ra"]),0)
 
 >>> spPartitionRight' 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-(([2,4,3,1] [5,6,7,8,9,0],["pa","pa","pa","sb","pa","pa","pb","pb","rb","pb","ra","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
+(([2,4,3,1] [5,7,6,8,9,0],["pa","pa","pa","pa","pa","pb","pb","rb","pb","ra","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
 >>> spPartitionRight' 5 2 (makeStackPair' [] [2,0,4,3,1,5,7,6,8,9], [])
-(([2] [3,4,5,7,6,8,9,0,1],["pa","pa","sb","ra","pb","pb","ra","pb"]),2)
+(([2] [4,3,5,7,6,8,9,0,1],["pa","pa","ra","pb","pb","ra","pb"]),2)
 >>> spPartitionLeft 5 0 2 (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
 (([1,2,0] [4,3,5,7,6,8,9],["pa","pa","rb"]),2)
 >>> spPartitionLeft 3 0 1 (makeStackPair' [2,0,1] [4,3,5,7,6,8,9], [])
@@ -227,8 +228,20 @@ outerLoop m s@(StackPair (as, bs), ops)
   = outerLoop m'' s'''
     where
       (s'@(sp', ops'), m')        = spPartitionRight' m (medianOfMedians $ take m as) s
-      s''@(sp'', ops'')           = leftLoop s'
-      (s'''@(sp''', ops'''), m'') = sweepRight m' s''
+      s''@(sp'', ops'')
+       | length (stackB sp') <= 6 = sortLeft s'
+       | otherwise                = leftLoop s'
+      (s'''@(sp''', ops'''), m'')
+       | solved sp'' = (s'', 0)
+       | otherwise   = sweepRight m' s''
+
+solved :: StackPair -> Bool
+solved (StackPair (as, [])) = sorted as
+  where
+    sorted [] = True
+    sorted [x] = True
+    sorted (x1 : x2 : xs) = x1 < x2 && sorted xs
+solved _ = False
 
 sweepRight :: Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
 sweepRight 0 s = (s, 0)
@@ -237,14 +250,28 @@ sweepRight m s@(StackPair (a : as, bs), ops)
   | all (> a) (take (m - 1) as) = sweepRight (m - 1) $ raRec s
   | otherwise    = (s, m)
 
+sortLeft :: (StackPair, [String]) -> (StackPair, [String])
+sortLeft s@(StackPair (as, bs), ops)
+ = recRepeatOp "ra" (length bs) ra $ sortLeftIter s
+sortLeftIter s@(StackPair (as, []), ops) = s
+sortLeftIter s@(StackPair (as, b : bs), ops)
+  | all (< b) bs = sortLeftIter $ paRec s
+  | otherwise    = sortLeftIter $ rbRec s
+
 {-
->>> spPartitionRight' 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-(([2,4,3,1] [5,6,7,8,9,0],["pa","pa","pa","sb","pa","pa","pb","pb","rb","pb","ra","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
+>>> sortLeft (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
+([] [5,7,6,8,9,0,1,2,3,4],["ra","ra","ra","ra","ra","pa","pa","pa","rb","pa","rb","rb","rb","pa","rb","rb"])
 >>> leftLoop (makeStackPair' [2,0,4,3,1] [5,7,6,8,9], [])
 ([] [5,7,6,8,9,0,1,2,3,4],["ra","ra","ra","ra","pa","pa","pa","pa","rb","rb","rb","pb","rb","pb","ra","pa","pa","pa","rb"])
+>>> spPartitionRight' 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
+(([2,4,3,1] [5,7,6,8,9,0],["pa","pa","pa","pa","pa","pb","pb","rb","pb","ra","pb","rb","pb","rb","pb","pb","rb","pb","pb"]),5)
 >>> sweepRight 5 (makeStackPair' [] [5,7,6,8,9,0,1,2,3,4], [])
 (([] [7,6,8,9,0,1,2,3,4,5],["ra"]),4)
+>>> sweepRight 5 (makeStackPair' [] [0,1,2,3,4,5,7,6,8,9], [])
+(([] [5,7,6,8,9,0,1,2,3,4],["ra","ra","ra","ra","ra"]),0)
+-}
 
+{-
 >>> spPartitionRight' 4 8 (makeStackPair' [] [7,6,8,9,0,1,2,3,4,5], [])
 (([8,7] [9,0,1,2,3,4,5,6],["pa","pb","rb","pb","ra","pb"]),1)
 >>> leftLoop (makeStackPair' [8,6,7] [9,0,1,2,3,4,5], [])
@@ -252,11 +279,11 @@ sweepRight m s@(StackPair (a : as, bs), ops)
 >>> sweepRight 1 (makeStackPair' [] [9,0,1,2,3,4,5,6,7,8], [])
 (([] [0,1,2,3,4,5,6,7,8,9],["ra"]),0)
 >>> outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-([] [0,1,2,3,4,5,6,7,8,9],["ra","ra","ra","ra","ra","ra","pa","ra","pa","rb","pb","ra","pa","pa","rb","ra","pa","pa","pa","pa","sb","pa","pa","pb","pb","rb","pb","ra","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
+([] [8,9,0,1,2,3,4,5,6,7],["ra","pa","pa","pa","pb","pb","ra","pb","ra","ra","pa","ra","pa","rb","pb","ra","pa","pa","rb","ra","pa","pa","pa","pa","pa","pa","pb","pb","rb","pb","ra","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
 >>> length $ snd $ outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-37
+40
 >>> length $ spCompact [] $ snd $ outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-33
+32
 -}
 
 ---------
@@ -277,5 +304,5 @@ solve sp = Just (sp', spCompact [] ops')
 
 {-
 >>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
-Just ([] [2,3,4,5,8,1,0,6,7,9],["pb","pb","rb","pb","pb","rb","pb","rb","pb","pb","ra","pb","pb","pb","rb","pa","pa","sb","pa","sb","pa","sb","pa","pa","ra","pa","ra","rb","pa","pa","ra","pb","rb","pa","ra","pa","ra","ra","pb","pb","ra","pb","pb","ra","sb","pa","pa","ra","pa","ra","pa","ra","ra"])
+Just ([] [8,9,0,1,2,3,4,5,6,7],["pb","pb","rb","pb","pb","rb","pb","rb","pb","ra","pb","rb","pa","pa","pa","rb","rb","pa","rb","rb","pa","pa","pa","ra","ra","ra","ra","ra","pb","ra","pa","ra"])
 -}
