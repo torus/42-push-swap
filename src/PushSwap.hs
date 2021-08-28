@@ -240,7 +240,7 @@ solved (StackPair (as, [])) = sorted as
   where
     sorted [] = True
     sorted [x] = True
-    sorted (x1 : x2 : xs) = x1 < x2 && sorted xs
+    sorted (x1 : x2 : xs) = x1 < x2 && sorted (x2 : xs)
 solved _ = False
 
 sweepRight :: Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
@@ -279,11 +279,11 @@ sortLeftIter s@(StackPair (as, b : bs), ops)
 >>> sweepRight 1 (makeStackPair' [] [9,0,1,2,3,4,5,6,7,8], [])
 (([] [0,1,2,3,4,5,6,7,8,9],["ra"]),0)
 >>> outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-([] [8,9,0,1,2,3,4,5,6,7],["ra","pa","pa","pa","pb","pb","ra","pb","ra","ra","pa","ra","pa","rb","pb","ra","pa","pa","rb","ra","pa","pa","pa","pa","pa","pa","pb","pb","rb","pb","ra","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
+([] [0,1,2,3,4,5,6,7,8,9],["ra","ra","ra","pa","pa","pa","pb","pb","ra","pb","ra","ra","ra","ra","ra","pa","pa","pa","rb","rb","pa","rb","rb","pa","pa","pa","pa","pa","pb","pb","rb","pb","ra","pb","rb","pb","rb","pb","pb","rb","pb","pb"])
 >>> length $ snd $ outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-40
+42
 >>> length $ spCompact [] $ snd $ outerLoop 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-32
+34
 -}
 
 ---------
@@ -304,5 +304,5 @@ solve sp = Just (sp', spCompact [] ops')
 
 {-
 >>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
-Just ([] [8,9,0,1,2,3,4,5,6,7],["pb","pb","rb","pb","pb","rb","pb","rb","pb","ra","pb","rb","pa","pa","pa","rb","rb","pa","rb","rb","pa","pa","pa","ra","ra","ra","ra","ra","pb","ra","pa","ra"])
+Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","rb","pb","pb","rb","pb","rb","pb","ra","pb","rb","pa","pa","pa","rb","rb","pa","rb","rb","pa","pa","pa","ra","ra","ra","ra","ra","pb","ra","pa","ra","ra","ra"])
 -}
