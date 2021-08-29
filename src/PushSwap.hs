@@ -127,6 +127,55 @@ split5 as
 
 ----------
 
+sweepRight :: Int -> Int -> (StackPair, [String]) -> (StackPair, [String])
+sweepRight 0 pivot s = s
+sweepRight n pivot s@(StackPair (a : as, bs), ops)
+  | a < pivot = sweepRight (n - 1) pivot $ pbRec s
+  | all (> pivot) $ take n as = s
+  | otherwise = sweepRight (n - 1) pivot $ raRec s
+sweepRight n pivot (StackPair (as, bs), ops) = undefined
+
+sweepLeft :: Int -> Int -> (StackPair, [String]) -> (StackPair, [String])
+sweepLeft 0 _ s = s
+sweepLeft n pivot s@(StackPair (as, b : bs), ops)
+  | b < pivot = sweepLeft (n - 1) pivot $ rbRec s
+  | all (< pivot) (b : bs) = s
+  | otherwise = sweepLeft (n - 1) pivot $ paRec s
+sweepLeft n pivot s = undefined
+
+{-
+>>> sweepRight 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
+>>> sweepRight 20 9 (makeStackPair' [] [11,18,3,7,6,12,17,9,13,14,5,10,19,16,4,8,2,0,15,1], [])
+([1,3,0,2] [8,9,5,7,4,6],["pb","pb","ra","ra","pb","ra","pb","ra"])
+([3,7,6,5,4,8,2,0,1] [11,18,12,17,9,13,14,10,19,16,15],["pb","ra","pb","pb","pb","pb","ra","ra","ra","pb","ra","ra","ra","ra","ra","pb","pb","pb","ra","ra"])
+>>> sweepLeft 4 2 (makeStackPair' [1,3,0,2] [8,9,5,7,4,6], [])
+>>> sweepLeft 9 4 (makeStackPair' [3,7,6,5,4,8,2,0,1] [11,18,12,17,9,13,14,10,19,16,15], [])
+([1,0] [3,2,8,9,5,7,4,6],["rb","pa","rb","pa"])
+([3,2,0,1] [7,6,5,4,8,11,18,12,17,9,13,14,10,19,16,15],["rb","pa","pa","pa","pa","pa","rb","rb","rb"])
+-}
+
+{-
+right 10 4 [5,1,7,3,4,6,0,2,8,9]
+    [] [5,1,7,3,4,6,0,2,8,9]
+pb [5] [1,7,3,4,6,0,2,8,9]
+ra [5] [7,3,4,6,0,2,8,9,1]
+pb [5,7] [3,4,6,0,2,8,9,1]
+ra [5,7] [4,6,0,2,8,9,1,3]
+ra [5,7] [6,0,2,8,9,1,3,4]
+pb [5,7,6] [0,2,8,9,1,3,4]
+ra [5,7,6] [2,8,9,1,3,4,0]
+ra [5,7,6] [8,9,1,3,4,0,2]
+pb [5,7,6,8] [9,1,3,4,0,2]
+pb [5,7,6,8,9] [1,3,4,0,2]
+
+left 5 7 [5,7,6,8,9] [1,3,4,0,2]
+rb [9,5,7,6,8] [ 1,3,4,0,2]
+rb [8,9,5,7,6] [ 1,3,4,0,2]
+pa [8,9,5,7] [6, 1,3,4,0,2]
+pa [8,9,5] [7,6, 1,3,4,0,2]
+pa [8,9] [5,7,6, 1,3,4,0,2]
+
+-}
 
 ---------
 
@@ -144,6 +193,7 @@ solve sp = Just (sp', spCompact [] ops')
   where
     (sp', ops') = outerLoop (length $ stackA sp) (sp, [])
 
+outerLoop = undefined 
 {-
 >>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
 Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","rb","pb","pb","rb","pb","rb","pb","ra","pb","rb","pa","pa","pa","rb","rb","pa","rb","rb","pa","pa","pa","ra","ra","ra","ra","ra","pb","ra","pa","ra","ra","ra"])
