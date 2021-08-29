@@ -252,6 +252,7 @@ sweepRight m s@(StackPair (a : as, bs), ops)
 sortLeft :: (StackPair, [String]) -> (StackPair, [String])
 sortLeft s@(StackPair (as, bs), ops)
  = recRepeatOp "ra" (length bs) ra $ sortLeftIter s
+sortLeftIter :: (StackPair, [String]) -> (StackPair, [String])
 sortLeftIter s@(StackPair (as, []), ops) = s
 sortLeftIter s@(StackPair (as, b : bs), ops)
   | all (< b) bs = sortLeftIter $ paRec s
@@ -304,4 +305,6 @@ solve sp = Just (sp', spCompact [] ops')
 {-
 >>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
 Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","rb","pb","pb","rb","pb","rb","pb","ra","pb","rb","pa","pa","pa","rb","rb","pa","rb","rb","pa","pa","pa","ra","ra","ra","ra","ra","pb","ra","pa","ra","ra","ra"])
+>>> solve (makeStackPair' [] [11,18,3,7,6,12,17,9,13,14,5,10,19,16,4,8,2,0,15,1])
+Just ([] [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],["pb","pb","pb","rb","pb","rb","pb","rb","pb","pb","pb","pb","pb","pb","rb","pb","pb","pb","pb","rb","pb","pb","rb","ra","pb","ra","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","rb","pa","pa","pa","pa","rb","pa","pa","ra","ra","ra","ra","ra","ra","pb","pb","pb","rb","pb","pb","rb","pb","pb","pb","rb","pb","pb","ra","pa","pa","pa","pa","pa","pa","rb","pa","rb","rb","pa","rb","pa","pa","ra","ra","ra","ra","pb","pb","ra","ra","pb","pb","ra","pa","pa","rb","pb","ra","pa","pa","pa","ra","ra","ra"])
 -}
