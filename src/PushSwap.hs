@@ -87,7 +87,9 @@ topA :: StackPair -> Int
 topA sp = head (stackA sp)
 topB sp = head (stackB sp)
 
-raRec, rbRec, paRec, pbRec, saRec, sbRec, ssRec :: (StackPair, [String]) -> (StackPair, [String])
+raRec, rbRec, rraRec, rrbRec,
+  paRec, pbRec, saRec, sbRec, ssRec :: (StackPair, [String]) -> (StackPair, [String])
+
 {-
 rbRec = recOp "rb" rb
 raRec = recOp "ra" ra
@@ -99,6 +101,14 @@ rbRec x = recOp "rb" rb x
 raRec (StackPair ([], bs), ops) = (StackPair ([], bs), ops)
 raRec (StackPair ([a], bs), ops) = (StackPair ([a], bs), ops)
 raRec x = recOp "ra" ra x
+
+rrbRec (StackPair (as, []), ops) = (StackPair (as, []), ops)
+rrbRec (StackPair (as, [b]), ops) = (StackPair (as, [b]), ops)
+rrbRec x = recOp "rrb" rrb x
+
+rraRec (StackPair ([], bs), ops) = (StackPair ([], bs), ops)
+rraRec (StackPair ([a], bs), ops) = (StackPair ([a], bs), ops)
+rraRec x = recOp "rra" rra x
 
 paRec = recOp "pa" pa
 pbRec = recOp "pb" pb
@@ -143,15 +153,72 @@ sweepLeft n pivot s@(StackPair (as, b : bs), ops)
   | otherwise = sweepLeft (n - 1) pivot $ paRec s
 sweepLeft n pivot s = undefined
 
+sweepLeft' _ s@(StackPair (as, []), ops) = s
+sweepLeft' pivot s@(StackPair (as, [b1]), ops)
+  -- [b1][...]
+            = sweepLeft' pivot $ raRec $ paRec s
+sweepLeft' pivot s@(StackPair (as, [b2, b1]), ops)
+  -- [b1,b2][...]
+  | b2 < b1 = sweepLeft' pivot $ raRec $ paRec s
+  | b1 < b2 = sweepLeft' pivot $ raRec $ paRec $ sbRec s
+sweepLeft' pivot s@(StackPair (as, [b3, b2, b1]), ops)
+  -- [b1,b2,b3][...]
+  | b3 < b2 && b3 < b1 = sweepLeft' pivot $ raRec $ paRec s
+  | b2 < b1 && b2 < b3 = sweepLeft' pivot $ raRec $ paRec $ sbRec s
+  | b1 < b2 && b1 < b3 = sweepLeft' pivot $ raRec $ paRec $ rrbRec s
+sweepLeft' pivot s = error "sweepLeft'"
 {-
+-}
+
+outerLoop1 :: Int -> (StackPair, [String]) -> ((StackPair, [String]), Int)
+outerLoop1 n (sp, ops) = (leftLoop s', aLen')
+  where
+    aPivot = medianOfMedians $ stackA sp
+    s'@(sp', ops') = sweepRight n aPivot (sp, ops)
+    aLen' = length $ stackA sp'
+    leftLoop s@(StackPair (as, []), ops) = s
+    leftLoop s@(sp, ops)
+      | length (stackB sp) <= 3 = sweepLeft' bPivot s
+      | otherwise = leftLoop $ sweepLeft (length $ stackB sp) bPivot s
+    bPivot = medianOfMedians $ stackB sp'
+
+outerLoop2 :: Int -> (StackPair, [String]) -> (StackPair, [String])
+outerLoop2 n s@(sp, ops) = s'
+  where
+    (s', n') = outerLoop1 n s
+
+outerLoop = undefined
+
+{-
+>>> medianOfMedians [5,1,7,3,4,6,0,2,8,9]
+>>> medianOfMedians [1,3,0,2]
+4
+1
+
 >>> sweepRight 10 4 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
 >>> sweepRight 20 9 (makeStackPair' [] [11,18,3,7,6,12,17,9,13,14,5,10,19,16,4,8,2,0,15,1], [])
 ([1,3,0,2] [8,9,5,7,4,6],["pb","pb","ra","ra","pb","ra","pb","ra"])
 ([3,7,6,5,4,8,2,0,1] [11,18,12,17,9,13,14,10,19,16,15],["pb","ra","pb","pb","pb","pb","ra","ra","ra","pb","ra","ra","ra","ra","ra","pb","pb","pb","ra","ra"])
->>> sweepLeft 4 2 (makeStackPair' [1,3,0,2] [8,9,5,7,4,6], [])
+>>> sweepLeft 4 1 (makeStackPair' [1,3,0,2] [8,9,5,7,4,6], [])
+>>> sweepLeft 1 0 (makeStackPair' [0] [1,3,2,8,9,5,7,4,6], [])
+([0] [1,3,2,8,9,5,7,4,6],["pa","pa","rb","pa"])
+([] [0,1,3,2,8,9,5,7,4,6],["pa"])
+
+>>> sweepLeft 1 0 (makeStackPair' [0] [1,3,2,8,9,5,7,4,6], [])
+>>> sweepLeft' 0 (makeStackPair' [0] [1,3,2,8,9,5,7,4,6], [])
+([] [0,1,3,2,8,9,5,7,4,6],["pa"])
+([] [1,3,2,8,9,5,7,4,6,0],["ra","pa"])
+
 >>> sweepLeft 9 4 (makeStackPair' [3,7,6,5,4,8,2,0,1] [11,18,12,17,9,13,14,10,19,16,15], [])
-([1,0] [3,2,8,9,5,7,4,6],["rb","pa","rb","pa"])
 ([3,2,0,1] [7,6,5,4,8,11,18,12,17,9,13,14,10,19,16,15],["rb","pa","pa","pa","pa","pa","rb","rb","rb"])
+
+>>> sweepLeft 2 1 (makeStackPair' [1,0] [3,2,8,9,5,7,4,6], [])
+([0] [1,3,2,8,9,5,7,4,6],["pa","rb"])
+
+>>> outerLoop1 10 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
+>>> outerLoop1 4  (makeStackPair' [] [1,3,0,2,8,9,5,7,4,6], [])
+(([] [1,3,2,8,9,5,7,4,6,0],["ra","pa","pa","pa","rb","pa","pb","pb","ra","ra","pb","ra","pb","ra"]),6)
+(([] [2,8,9,5,7,4,6,3,0,1],["ra","pa","ra","pa","pb","ra","pb"]),8)
 -}
 
 {-
@@ -191,9 +258,8 @@ spCompact (a : as) (b : bs)
 solve :: StackPair -> Maybe (StackPair, [String])
 solve sp = Just (sp', spCompact [] ops')
   where
-    (sp', ops') = outerLoop (length $ stackA sp) (sp, [])
+    (sp', ops') = outerLoop (sp, [])
 
-outerLoop = undefined 
 {-
 >>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
 Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","rb","pb","pb","rb","pb","rb","pb","ra","pb","rb","pa","pa","pa","rb","rb","pa","rb","rb","pa","pa","pa","ra","ra","ra","ra","ra","pb","ra","pa","ra","ra","ra"])
