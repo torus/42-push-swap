@@ -137,7 +137,41 @@ split5 as
 
 ----------
 
-outerLoop = undefined 
+sweepRight1 :: (StackPair, [String]) -> ((StackPair, [String]), [Int])
+sweepRight1 s = (s', length)
+  where
+    ((s', length), n) =  iter ((s, []), 0)
+    iter ((s@(StackPair (as, bs), ops), lengths), n)
+      | null as   = ((s, lengths), n)
+      | otherwise = iter $ sweepRightIter (s, lengths) n
+
+sweepRightIter :: ((StackPair, [String]), [Int]) -> Int -> (((StackPair, [String]), [Int]), Int)
+sweepRightIter (s@(StackPair (a1 : a2 : as, bs), ops), lengths) n
+  | even n && a1 > a2 || odd n && a1 < a2 = ((pbRec $ pbRec $ saRec s, 2 : lengths), n + 1)
+  | otherwise                             = ((pbRec $ pbRec s, 2 : lengths), n + 1)
+--sweepRightIter (s@(StackPair ([], bs), ops), lengths) n = ((s, lengths), n)
+sweepRightIter _ _ = undefined
+
+{-
+>>> sweepRightIter ((makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], []), []) 0
+((([1,5] [7,3,4,6,0,2,8,9],["pb","pb","sa"]),[2]),1)
+>>> sweepRightIter ((makeStackPair' [1,5] [7,3,4,6,0,2,8,9], []), [2]) 1
+((([1,5,7,3] [4,6,0,2,8,9],["pb","pb"]),[2,2]),2)
+>>> sweepRightIter ((makeStackPair' [1,5,7,3] [4,6,0,2,8,9], []), [2,2]) 2
+((([1,5,7,3,4,6] [0,2,8,9],["pb","pb"]),[2,2,2]),3)
+>>> sweepRightIter ((makeStackPair' [1,5,7,3,4,6] [0,2,8,9], []), [2,2,2]) 3
+((([1,5,7,3,4,6,2,0] [8,9],["pb","pb","sa"]),[2,2,2,2]),4)
+>>> sweepRightIter ((makeStackPair' [1,5,7,3,4,6,2,0] [8,9], []), [2,2,2,2]) 4
+((([1,5,7,3,4,6,2,0,8,9] [],["pb","pb"]),[2,2,2,2,2]),5)
+>>> sweepRightIter ((makeStackPair' [1,5,7,3,4,6,2,0,8,9] [], []), [2,2,2,2,2]) 5
+Prelude.undefined
+
+>>> sweepRight1 (makeStackPair' [] [], [])
+(([] [],[]),[])
+>>> sweepRight1 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
+(([1,5,7,3,4,6,2,0,8,9] [],["pb","pb","pb","pb","sa","pb","pb","pb","pb","pb","pb","sa"]),[2,2,2,2,2])
+-}
+outerLoop = undefined
 ---------
 
 spCompact :: [String] -> [String] -> [String]
