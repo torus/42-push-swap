@@ -328,7 +328,7 @@ outerLoop s = iter initState lengths []
     iter s []       lengthsR = iter s' lengthsL' []
       where
         (s', lengthsL') = sweepRight s lengthsR
-
+    iter _ _ _ = undefined
 ---------
 
 spCompact :: [String] -> [String] -> [String]
