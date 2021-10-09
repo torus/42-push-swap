@@ -137,48 +137,73 @@ split5 as
 
 ----------
 
-sweepRight1 :: (StackPair, [String]) -> ((StackPair, [String]), [Int])
-sweepRight1 s = (s', length)
+data SortOrder = Asc | Desc deriving (Show, Eq)
+
+sweepRight1 :: (StackPair, [String]) -> ((StackPair, [String]), [(SortOrder, Int)])
+sweepRight1 s = (s', lengths)
   where
-    ((s', length), n) =  iter ((s, []), 0)
+    ((s', lengths), n) =  iter ((s, []), 0)
     iter ((s@(StackPair (as, bs), ops), lengths), n)
       | null as   = ((s, lengths), n)
       | otherwise = iter $ sweepRight1Iter (s, lengths) n
 
-sweepRight1Iter :: ((StackPair, [String]), [Int]) -> Int -> (((StackPair, [String]), [Int]), Int)
+sweepRight1Iter :: ((StackPair, [String]), [(SortOrder, Int)]) -> Int -> (((StackPair, [String]), [(SortOrder, Int)]), Int)
 sweepRight1Iter (s@(StackPair (a1 : a2 : as, bs), ops), lengths) n
-  | even n && a1 > a2 || odd n && a1 < a2 = ((pbRec $ pbRec $ saRec s, 2 : lengths), n + 1)
-  | otherwise                             = ((pbRec $ pbRec s, 2 : lengths), n + 1)
+  | even n && a1 > a2 || odd n && a1 < a2 = ( (pbRec $ pbRec $ saRec s
+                                            , (if even n then Asc else Desc, 2) : lengths)
+                                            , n + 1)
+  | otherwise                             = ( (pbRec $ pbRec s
+                                            , (if even n then Asc else Desc, 2) : lengths)
+                                            , n + 1)
 --sweepRight1Iter (s@(StackPair ([], bs), ops), lengths) n = ((s, lengths), n)
 sweepRight1Iter _ _ = undefined
 
 {-
 >>> sweepRight1Iter ((makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], []), []) 0
-((([1,5] [7,3,4,6,0,2,8,9],["pb","pb","sa"]),[2]),1)
->>> sweepRight1Iter ((makeStackPair' [1,5] [7,3,4,6,0,2,8,9], []), [2]) 1
-((([1,5,7,3] [4,6,0,2,8,9],["pb","pb"]),[2,2]),2)
+((([1,5] [7,3,4,6,0,2,8,9],["pb","pb","sa"]),[(Asc,2)]),1)
+>>> sweepRight1Iter ((makeStackPair' [1,5] [7,3,4,6,0,2,8,9], []), [(Asc, 2)]) 1
+((([1,5,7,3] [4,6,0,2,8,9],["pb","pb"]),[(Desc,2),(Asc,2)]),2)
 
 >>> sweepRight1 (makeStackPair' [] [], [])
 (([] [],[]),[])
 >>> sweepRight1 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
-(([1,5,7,3,4,6,2,0,8,9] [],["pb","pb","pb","pb","sa","pb","pb","pb","pb","pb","pb","sa"]),[2,2,2,2,2])
+(([1,5,7,3,4,6,2,0,8,9] [],["pb","pb","pb","pb","sa","pb","pb","pb","pb","pb","pb","sa"]),[(Asc,2),(Desc,2),(Asc,2),(Desc,2),(Asc,2)])
 -}
 
-sweepLeftIter :: (StackPair, [String]) -> [Int] -> [Int] -> ((StackPair, [String]), [Int], [Int])
+{-
+adadad <- asc
+dada d <- desc
+ad  ad <- asc
+   dad <- desc
+
+adadada
+adadad a
+ dada da
+  ad ada
+    dada
+
+adad  <- asc
+ da d <- desc
+   ad
+-}
+
+sweepLeftIter :: (StackPair, [String]) -> [(SortOrder, Int)] -> [(SortOrder, Int)] -> ((StackPair, [String]), [(SortOrder, Int)], [(SortOrder, Int)])
 sweepLeftIter s@(StackPair (as, bs), ops) lengthsL lengthsR
   | null bs   = (s, [], lengthsR)
   | odd $ length lengthsL
-              = (recRepeatOp "pa" lenR pa s, tail lengthsL, lenR : lengthsR)
-  | odd $ length lengthsL `div` 2
+              = (recRepeatOp "pa" lenR pa s, tail lengthsL, (fst $ head lengthsL, lenR) : lengthsR)
+  | fst (head lengthsL) == Asc
               = ( mergeLeft1Desc s lenL lenR
                 , init $ tail lengthsL
-                , lenL + lenR : lengthsR)
+                , (Asc, lenL + lenR) : lengthsR
+                )
   | otherwise = ( mergeLeft1Asc s lenL lenR
                 , init $ tail lengthsL
-                , lenL + lenR : lengthsR)
+                , (Desc, lenL + lenR) : lengthsR
+                )
     where
-      lenL = last lengthsL
-      lenR = head lengthsL
+      lenL = snd $ last lengthsL
+      lenR = snd $ head lengthsL
 
 mergeLeft1Asc :: (StackPair, [String]) -> Int -> Int -> (StackPair, [String])
 mergeLeft1Asc s 0 0 = s
@@ -199,12 +224,12 @@ mergeLeft1Desc s@(StackPair (as, bs), ops) lenL lenR
 {-
 >>> sweepLeftIter (makeStackPair' [] [], []) [] []
 (([] [],[]),[],[])
->>> sweepLeftIter (makeStackPair' [1,5,7,3,4,6,2,0,8,9] [], []) [2,2,2,2,2] []
-(([1,5,7,3,4,6,2,0] [8,9],["pa","pa"]),[2,2,2,2],[2])
->>> sweepLeftIter (makeStackPair' [1,5,7,3,4,6,2,0] [8,9], []) [2,2,2,2] [2]
-(([7,3,4,6] [5,2,1,0,8,9],["pa","rrb","pa","pa","rrb","pa"]),[2,2],[4,2])
->>> sweepLeftIter (makeStackPair' [7,3,4,6] [5,2,1,0,8,9], []) [2,2] [4,2]
-(([] [3,4,6,7,5,2,1,0,8,9],["pa","pa","pa","pa","rrb"]),[],[4,4,2])
+>>> sweepLeftIter (makeStackPair' [1,5,7,3,4,6,2,0,8,9] [], []) [(Asc,2),(Desc,2),(Asc,2),(Desc,2),(Asc,2)] []
+(([1,5,7,3,4,6,2,0] [8,9],["pa","pa"]),[(Desc,2),(Asc,2),(Desc,2),(Asc,2)],[(Asc,2)])
+>>> sweepLeftIter (makeStackPair' [1,5,7,3,4,6,2,0] [8,9], []) [(Desc,2),(Asc,2),(Desc,2),(Asc,2)] [(Asc,2)]
+(([7,3,4,6] [5,2,1,0,8,9],["pa","rrb","pa","pa","rrb","pa"]),[(Asc,2),(Desc,2)],[(Desc,4),(Asc,2)])
+>>> sweepLeftIter (makeStackPair' [7,3,4,6] [5,2,1,0,8,9], []) [(Asc,2),(Desc,2)] [(Desc,4),(Asc,2)]
+(([] [3,4,6,7,5,2,1,0,8,9],["pa","pa","pa","pa","rrb"]),[],[(Asc,4),(Desc,4),(Asc,2)])
 
 >>> mergeLeft1Asc (makeStackPair' [1,5,7,3,4,6,2,0] [8,9], []) 2 2
 >>> mergeLeft1Asc (makeStackPair' [1,5,7,3,4,6,2,0] [8,9], []) 2 0
@@ -214,7 +239,58 @@ mergeLeft1Desc s@(StackPair (as, bs), ops) lenL lenR
 ([] [3,4,6,7,8,5,2,1,0,9],["pa","pa","pa","pa","rrb","pa"])
 -}
 
-sweepLeft :: (StackPair, [String]) -> [Int] -> ((StackPair, [String]), [Int])
+sweepRightIter :: (StackPair, [String]) -> [(SortOrder, Int)] -> [(SortOrder, Int)] -> ((StackPair, [String]), [(SortOrder, Int)], [(SortOrder, Int)])
+sweepRightIter s@(StackPair (as, bs), ops) lengthsL lengthsR
+  | null as   = (s, lengthsL, [])
+  | odd $ length lengthsR
+              = (recRepeatOp "pb" lenL pb s, (fst $ head lengthsR, lenL) : lengthsL,  tail lengthsR)
+  | fst (head lengthsR) == Desc
+              = ( mergeRight1Desc s lenL lenR
+                , (Desc, lenL + lenR) : lengthsL
+                , init $ tail lengthsR
+                )
+  | otherwise = ( mergeRight1Asc s lenL lenR
+                , (Asc, lenL + lenR) : lengthsL
+                , init $ tail lengthsR
+                )
+    where
+      lenR = snd $ last lengthsR
+      lenL = snd $ head lengthsR
+
+mergeRight1Asc :: (StackPair, [String]) -> Int -> Int -> (StackPair, [String])
+mergeRight1Asc s 0 0 = s
+mergeRight1Asc s@(StackPair (as, bs), ops) lenL lenR
+  | lenR == 0         = recRepeatOp "pb" lenL pb s
+  | lenL == 0         = mergeRight1Asc (pbRec $ rraRec s) 0          (lenR - 1)
+  | head as < last as = mergeRight1Asc (pbRec s)          (lenL - 1) lenR
+  | otherwise         = mergeRight1Asc (pbRec $ rraRec s) lenL       (lenR - 1)
+
+mergeRight1Desc :: (StackPair, [String]) -> Int -> Int -> (StackPair, [String])
+mergeRight1Desc s 0 0 = s
+mergeRight1Desc s@(StackPair (as, bs), ops) lenL lenR
+  | lenR == 0         = recRepeatOp "pb" lenL pb s
+  | lenL == 0         = mergeRight1Desc (pbRec $ rraRec s) 0          (lenR - 1)
+  | head as > last as = mergeRight1Desc (pbRec s)          (lenL - 1) lenR
+  | otherwise         = mergeRight1Desc (pbRec $ rraRec s) lenL       (lenR - 1)
+
+{-
+>>> mergeRight1Asc (makeStackPair' [] [3,4,6,7,5,2,1,0], []) 4 4
+([0,1,2,3,4,5,6,7] [],["pb","pb","pb","rra","pb","pb","pb","rra","pb","rra","pb","rra"])
+>>> mergeRight1Desc (makeStackPair' [] [7,6,4,3,0,1,2,5], []) 4 4
+([7,6,5,4,3,2,1,0] [],["pb","pb","rra","pb","rra","pb","pb","pb","rra","pb","pb"])
+
+>>> sweepRightIter (makeStackPair' [] [3,4,6,7,5,2,1,0,8,9], []) [] [(Asc,4),(Desc,4),(Desc,2)]
+(([3,4,6,7] [5,2,1,0,8,9],["pb","pb","pb","pb"]),[(Asc,4)],[(Desc,4),(Desc,2)])
+>>> sweepRightIter (makeStackPair' [3,4,6,7] [8,5,2,1,0,9], []) [(Asc,4)] [(Desc,4),(Desc,2)]
+(([3,4,6,7,9,8,5,2,1,0] [],["pb","pb","pb","pb","pb","pb","rra"]),[(Desc,6),(Asc,4)],[])
+>>> sweepLeftIter (makeStackPair' [3,4,6,7, 9,8,5,2,1,0] [], []) [(Desc,6),(Asc,4)] []
+(([] [9,8,7,6,5,4,3,2,1,0],["pa","pa","pa","rrb","pa","rrb","pa","pa","rrb","pa","rrb","pa","pa","pa"]),[],[(Desc,10)])
+>>> mergeLeft1Asc (makeStackPair' [3,4,6,7, 9,8,5,2,1,0] [], []) 4 6
+([] [9,8,7,6,5,4,3,2,1,0],["pa","pa","pa","rrb","pa","rrb","pa","pa","rrb","pa","rrb","pa","pa","pa"])
+
+-}
+
+sweepLeft :: (StackPair, [String]) -> [(SortOrder, Int)] -> ((StackPair, [String]), [(SortOrder, Int)])
 sweepLeft s lengths = iter s lengths []
   where
     iter s []       lengthsR = (s, lengthsR)
@@ -222,12 +298,37 @@ sweepLeft s lengths = iter s lengths []
       where
         (s', lengthsL', lengthsR') = sweepLeftIter s lengthsL lengthsR
 
-{-
->>> sweepLeft (makeStackPair' [1,5,7,3,4,6,2,0,8,9] [], []) [2,2,2,2,2]
-(([] [3,4,6,7,5,2,1,0,8,9],["pa","pa","pa","pa","rrb","pa","rrb","pa","pa","rrb","pa","pa","pa"]),[4,4,2])
--}
+sweepRight :: (StackPair, [String]) -> [(SortOrder, Int)] -> ((StackPair, [String]), [(SortOrder, Int)])
+sweepRight s lengths = iter s [] lengths
+  where
+    iter s lengthsL []       = (s, lengthsL)
+    iter s lengthsL lengthsR = iter s' lengthsL' lengthsR'
+      where
+        (s', lengthsL', lengthsR') = sweepRightIter s lengthsL lengthsR
 
-outerLoop = undefined
+{-
+>>> sweepLeft (makeStackPair' [1,5,7,3,4,6,2,0,8,9] [], []) [2,2,2,2,2] True
+Couldn't match expected type ‘Bool -> t’
+            with actual type ‘((StackPair, [String]), [(SortOrder, Int)])’
+>>> sweepRight (makeStackPair' [] [3,4,6,7,5,2,1,0,8,9], []) [4,4,2] True
+Couldn't match expected type ‘Bool -> t’
+            with actual type ‘((StackPair, [String]), [(SortOrder, Int)])’
+>>> sweepLeft (makeStackPair' [3,4,6,7,9,8,5,2,1,0] [], []) [6,4] True
+Couldn't match expected type ‘Bool -> t’
+            with actual type ‘((StackPair, [String]), [(SortOrder, Int)])’
+-}
+outerLoop :: (StackPair, [String]) -> (StackPair, [String])
+outerLoop s = iter initState lengths []
+  where
+    (initState, lengths) = sweepRight1 s
+    iter s []       [_]      = s
+    iter s lengthsL []       = iter s' [] lengthsR'
+      where
+        (s', lengthsR') = sweepLeft s lengthsL
+    iter s []       lengthsR = iter s' lengthsL' []
+      where
+        (s', lengthsL') = sweepRight s lengthsR
+
 ---------
 
 spCompact :: [String] -> [String] -> [String]
@@ -246,7 +347,18 @@ solve sp = Just (sp', spCompact [] ops')
 
 {-
 >>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
-Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","rb","pb","pb","rb","pb","rb","pb","ra","pb","rb","pa","pa","pa","rb","rb","pa","rb","rb","pa","pa","pa","ra","ra","ra","ra","ra","pb","ra","pa","ra","ra","ra"])
+Just ([] [9,8,7,6,5,4,3,2,1,0],["sa","pb","pb","pb","pb","pb","pb","sa","pb","rrb","pa","pa","rrb","pa","rrb","rra","pb","rra","pb","pb","rrb","pa","rrb","pa","pa","rrb","pa","rrb","pa","pa","pa"])
 >>> solve (makeStackPair' [] [11,18,3,7,6,12,17,9,13,14,5,10,19,16,4,8,2,0,15,1])
-Just ([] [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],["pb","pb","pb","rb","pb","rb","pb","rb","pb","pb","pb","pb","pb","pb","rb","pb","pb","pb","pb","rb","pb","pb","rb","ra","pb","ra","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","rb","pa","pa","pa","pa","rb","pa","pa","ra","ra","ra","ra","ra","ra","pb","pb","pb","rb","pb","pb","rb","pb","pb","pb","rb","pb","pb","ra","pa","pa","pa","pa","pa","pa","rb","pa","rb","rb","pa","rb","pa","pa","ra","ra","ra","ra","pb","pb","ra","ra","pb","pb","ra","pa","pa","rb","pb","ra","pa","pa","pa","ra","ra","ra"])
+Just ([] [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],["pb","pb","sa","pb","pb","pb","pb","pb","pb","pb","pb","sa","pb","pb","sa","pb","pb","sa","pb","pb","sa","pb","pb","pb","rrb","pa","pa","rrb","pa","rrb","pa","rrb","pa","pa","pa","pa","rrb","pa","pa","rrb","pa","pa","rrb","pa","pa","rrb","pa","pa","pa","rrb","pb","pb","rra","pb","pb","rra","pb","rra","pb","pb","pb","rra","pb","pb","pb","pb","rra","pb","pb","pb","rra","pb","rra","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","rrb","pa","rrb","pa","pa","rrb","pa","pa","rrb","pa","pa","rra","pb","pb","rra","pb","rra","pb","rra","pb","pb","rra","pb","rra","pb","rra","pb","pb","pb","pb","rra","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa"])
+>>> sweepRight1 (makeStackPair' [] [11,18,3,7,6,12,17,9,13,14,5,10,19,16,4,8,2,0,15,1], [])
+(([11,18,7,3,6,12,17,9,13,14,10,5,16,19,8,4,0,2,15,1] [],["pb","pb","pb","pb","sa","pb","pb","sa","pb","pb","sa","pb","pb","sa","pb","pb","pb","pb","pb","pb","pb","pb","sa","pb","pb"]),[(Desc,2),(Asc,2),(Desc,2),(Asc,2),(Desc,2),(Asc,2),(Desc,2),(Asc,2),(Desc,2),(Asc,2)])
+>>> sweepLeft (makeStackPair' [11,18,7,3,6,12,17,9,13,14,10,5,16,19,8,4,0,2,15,1] [], []) [2,2,2,2,2,2,2,2,2,2]
+No instance for (Num (SortOrder, Int)) arising from the literal ‘2’
+>>> sweepRight (makeStackPair' [] [14,13,10,5, 9,16,17,19, 12,8,6,4, 0,2,3,7, 18,15,11,1], []) [4,4,4,4,4]
+No instance for (Num (SortOrder, Int)) arising from the literal ‘4’
+
+adadadadad
+            dadad
+
+
 -}
