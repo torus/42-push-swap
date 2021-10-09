@@ -299,7 +299,7 @@ sweepLeft s lengths = iter s lengths []
         (s', lengthsL', lengthsR') = sweepLeftIter s lengthsL lengthsR
 
 sweepRight :: (StackPair, [String]) -> [(SortOrder, Int)] -> ((StackPair, [String]), [(SortOrder, Int)])
-sweepRight s lengths = iter s [] lengths
+sweepRight s = iter s []
   where
     iter s lengthsL []       = (s, lengthsL)
     iter s lengthsL lengthsR = iter s' lengthsL' lengthsR'
