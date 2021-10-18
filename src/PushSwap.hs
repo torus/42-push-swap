@@ -2,6 +2,7 @@ module PushSwap where
 
 import Data.List
 import Data.Lists
+import Data.Bits
 import Control.Monad.ST
 import Data.Array.ST
 import Data.STRef
@@ -118,24 +119,30 @@ ssRec = recOp "ss" ss
 
 makeStackPair' :: [Int] -> [Int] -> StackPair
 makeStackPair' l r = StackPair (r, reverse l)
-
-median5 :: [Int] -> Int
-median5 as
-    | odd (length as) = sort as !! (length as `div` 2)
-    | otherwise       = sort as !! (length as `div` 2 - 1)
-
-medianOfMedians :: [Int] -> Int
-medianOfMedians [] = 0
-medianOfMedians as
-    | length as > 5 = medianOfMedians $ map median5 (split5 as)
-    | otherwise     = median5 as
-
-split5 :: [Int] -> [[Int]]
-split5 as
-    | length as > 5 = take 5 as : split5 (drop 5 as)
-    | otherwise     = [as]
-
 ----------
+
+splitByDigit :: Int -> (StackPair, [String]) -> (StackPair, [String])
+splitByDigit d s@(StackPair (as, []), ops) = iter 0 s
+  where
+    iter n s@(StackPair (as, bs), ops)
+      | length as == n                 = recRepeatOp "pa" (length bs) pa s
+      | head as .&. (1 `shift` d) == 0 = iter n $ pbRec s
+      | otherwise                      = iter (n + 1) $ raRec s
+splitByDigit _ _ = undefined
+
+{-
+>>> splitByDigit 0 (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9], [])
+([] [4,6,0,2,8,5,1,7,3,9],["pa","pa","pa","pa","pa","ra","pb","pb","pb","pb","pb","ra","ra","ra","ra"])
+>>> splitByDigit 1 (makeStackPair' [] [4,6,0,2,8,5,1,7,3,9], [])
+([] [4,0,8,5,1,9,6,2,7,3],["pa","pa","pa","pa","pa","pa","pb","ra","ra","pb","pb","pb","ra","pb","ra","pb"])
+>>> splitByDigit 2 (makeStackPair' [] [4,0,8,5,1,9,6,2,7,3], [])
+([] [0,8,1,9,2,3,4,5,6,7],["pa","pa","pa","pa","pa","pa","pb","ra","pb","ra","pb","pb","ra","pb","pb","ra"])
+>>> splitByDigit 3 (makeStackPair' [] [0,8,1,9,2,3,4,5,6,7], [])
+([] [0,1,2,3,4,5,6,7,8,9],["pa","pa","pa","pa","pa","pa","pa","pa","pb","pb","pb","pb","pb","pb","ra","pb","ra","pb"])
+-}
+
+outerLoop :: (StackPair, [String]) -> (StackPair, [String])
+
 
 outerLoop = undefined 
 ---------
