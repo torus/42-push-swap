@@ -142,9 +142,24 @@ splitByDigit _ _ = undefined
 -}
 
 outerLoop :: (StackPair, [String]) -> (StackPair, [String])
+outerLoop s@(StackPair (as, []), ops) = iter 0 (digits as) s
+  where
+    iter n m s
+      | n == m    = s
+      | otherwise = iter (n + 1) m $ splitByDigit n s
+outerLoop _ = undefined
 
+digits :: Foldable t => t a -> Int
+digits as = ceiling $ logBase 2 (fromIntegral $ length as) :: Int
 
-outerLoop = undefined 
+{-
+>>> digits []
+0
+>>> digits [0,1]
+1
+>>> digits [0,1,2,3,4,5,6,7]
+3
+-}
 ---------
 
 spCompact :: [String] -> [String] -> [String]
@@ -163,7 +178,7 @@ solve sp = Just (sp', spCompact [] ops')
 
 {-
 >>> solve (makeStackPair' [] [5,1,7,3,4,6,0,2,8,9])
-Just ([] [0,1,2,3,4,5,6,7,8,9],["pb","pb","rb","pb","pb","rb","pb","rb","pb","ra","pb","rb","pa","pa","pa","rb","rb","pa","rb","rb","pa","pa","pa","ra","ra","ra","ra","ra","pb","ra","pa","ra","ra","ra"])
+Just ([] [0,1,2,3,4,5,6,7,8,9],["ra","ra","ra","ra","pb","pb","pb","pb","pb","ra","pa","pa","pa","pa","ra","pb","ra","pb","pb","pb","ra","ra","pa","pa","pa","pa","pa","ra","pb","pb","ra","pb","pb","ra","pb","ra","pa","pa","pa","pa","ra","pb","ra","pa","pa"])
 >>> solve (makeStackPair' [] [11,18,3,7,6,12,17,9,13,14,5,10,19,16,4,8,2,0,15,1])
-Just ([] [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],["pb","pb","pb","rb","pb","rb","pb","rb","pb","pb","pb","pb","pb","pb","rb","pb","pb","pb","pb","rb","pb","pb","rb","ra","pb","ra","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","rb","pa","pa","pa","pa","rb","pa","pa","ra","ra","ra","ra","ra","ra","pb","pb","pb","rb","pb","pb","rb","pb","pb","pb","rb","pb","pb","ra","pa","pa","pa","pa","pa","pa","rb","pa","rb","rb","pa","rb","pa","pa","ra","ra","ra","ra","pb","pb","ra","ra","pb","pb","ra","pa","pa","rb","pb","ra","pa","pa","pa","ra","ra","ra"])
+Just ([] [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],["ra","pb","ra","ra","pb","pb","ra","ra","ra","pb","ra","pb","ra","pb","pb","pb","pb","pb","ra","ra","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","ra","ra","pb","ra","ra","pb","pb","pb","ra","pb","ra","ra","ra","pb","pb","pb","pb","ra","ra","pa","pa","pa","pa","pa","pa","pa","pa","pa","ra","pb","ra","pb","pb","pb","pb","ra","ra","pb","pb","ra","ra","pb","pb","pb","pb","ra","pb","ra","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","ra","pb","pb","ra","pb","pb","ra","pb","ra","pb","pb","ra","pb","ra","pb","pb","ra","pb","ra","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","pa","ra","pb","ra","pb","ra","pb","pb","ra","pa","pa","pa","pa"])
 -}
